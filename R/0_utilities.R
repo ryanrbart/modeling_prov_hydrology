@@ -11,6 +11,7 @@ library(dplyr)
 library(purrr)
 library(lubridate)
 library(broom)
+library(stringr)
 
 
 # ---------------------------------------------------------------------
