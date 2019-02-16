@@ -5,6 +5,8 @@
 source("R/0_utilities.R")
 
 # ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
 # Import data
 
 wy <- seq(2004,2014)
@@ -138,6 +140,111 @@ data_seasonal <- data_daily %>%
 
 
 # ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
+# Compute difference between thinning and baseline
+
+
+# Functions
+# See https://dplyr.tidyverse.org/articles/programming.html
+
+# Function to pass a dynamic variable to dplyr::select
+select_dynamic <- function(df, ...){
+  group_var <- enquos(...)
+  dplyr::select(df, !!! group_var)
+}
+
+# Function to pass dynamic variables to tidyr::spread
+spread_dynamic <- function(df, key, value){
+  key <- enquo(key)
+  value <- enquo(value)
+  tidyr::spread(df, key=(!!key), value = (!!value))
+}
+
+# Function to compute absolute and relative changes
+absol_rel_change <- function(df){
+  df %>% 
+    dplyr::mutate(absolute_80 = `80`-`100`,
+                  relative_80 = (`80`-`100`)/`100`*100,
+                  absolute_50 = `50`-`100`,
+                  relative_50 = (`50`-`100`)/`100`*100)
+}
+
+# ---------------------------------------------------------------------
+# Process data to a list that has absolute and relative differences for each variable
+
+
+var_standard_daily <- c("wy", "WYD", "biomass", "watershed")
+var_standard_seasonal <- c("wy", "season", "biomass", "watershed")
+var_standard_annual <- c("wy", "biomass", "watershed")
+
+diff_flux_daily <- list()
+diff_flux_seasonal <- list()
+diff_flux_annual <- list()
+
+diff_storage_daily <- list()
+diff_storage_seasonal <- list()
+diff_storage_annual <- list()
+
+# Process fluxes
+for (aa in seq_along(flux_var)){
+  
+  # Daily
+  diff_flux_daily[[aa]] <- data_daily %>% 
+    select_dynamic(c(var_standard_daily, flux_var[aa])) %>% 
+    spread_dynamic(key = biomass, value = flux_var[aa]) %>% 
+    absol_rel_change()
+  
+  # Seasonal
+  diff_flux_seasonal[[aa]] <- data_seasonal %>% 
+    select_dynamic(c(var_standard_seasonal, flux_var[aa])) %>% 
+    spread_dynamic(key = biomass, value = flux_var[aa]) %>% 
+    absol_rel_change()
+  
+  # Annual
+  diff_flux_annual[[aa]] <- data_annual %>% 
+    select_dynamic(c(var_standard_annual, flux_var[aa])) %>% 
+    spread_dynamic(key = biomass, value = flux_var[aa]) %>% 
+    absol_rel_change()
+}
+
+# Set flux names in list
+diff_flux_daily <- setNames(diff_flux_daily, flux_var)
+diff_flux_seasonal <- setNames(diff_flux_seasonal, flux_var)
+diff_flux_annual <- setNames(diff_flux_annual, flux_var)
+
+
+# Process Storages
+for (aa in seq_along(storage_var)){
+  
+  # Daily
+  diff_storage_daily[[aa]] <- data_daily %>% 
+    select_dynamic(c(var_standard_daily, storage_var[aa])) %>% 
+    spread_dynamic(key = biomass, value = storage_var[aa]) %>% 
+    absol_rel_change()
+  
+  # Seasonal
+  diff_storage_seasonal[[aa]] <- data_seasonal %>% 
+    select_dynamic(c(var_standard_seasonal, storage_var[aa])) %>% 
+    spread_dynamic(key = biomass, value = storage_var[aa]) %>% 
+    absol_rel_change()
+  
+  # Annual
+  diff_storage_annual[[aa]] <- data_annual %>% 
+    select_dynamic(c(var_standard_annual, storage_var[aa])) %>% 
+    spread_dynamic(key = biomass, value = storage_var[aa]) %>% 
+    absol_rel_change()
+}
+
+# Set flux names in list
+diff_storage_daily <- setNames(diff_storage_daily, storage_var)
+diff_storage_seasonal <- setNames(diff_storage_seasonal, storage_var)
+diff_storage_annual <- setNames(diff_storage_annual, storage_var)
+
+
+# ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
 # Export
 
 write_csv(data_daily, path="output/data_daily.csv")
@@ -145,3 +252,10 @@ write_csv(data_seasonal, path="output/data_seasonal.csv")
 write_csv(data_annual, path="output/data_annual.csv")
 
 
+write_rds(diff_flux_daily, path="output/diff_flux_daily.rds")
+write_rds(diff_flux_seasonal, path="output/diff_flux_seasonal.rds")
+write_rds(diff_flux_annual, path="output/diff_flux_annual.rds")
+
+write_rds(diff_storage_daily, path="output/diff_storage_daily.rds")
+write_rds(diff_storage_seasonal, path="output/diff_storage_seasonal.rds")
+write_rds(diff_storage_annual, path="output/diff_storage_annual.rds")
