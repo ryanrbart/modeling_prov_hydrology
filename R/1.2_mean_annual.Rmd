@@ -1,0 +1,70 @@
+---
+title: "Analysis of Mean Annual Fluxes and Storages"
+output:
+  html_document:
+    theme: united
+    df_print: paged
+  html_notebook: default
+  pdf_document: default
+---
+
+###Load libraries and functions
+
+```{r message=FALSE, warning=FALSE}
+source("0_utilities.R")
+```
+
+###Import the previously processed data
+
+```{r Import data}
+data_annual <- read_csv("../output/data_annual.csv",
+                        col_types = list(watershed = col_factor(),
+                                         biomass = col_factor()))
+
+diff_flux_annual <- read_rds("../output/diff_flux_annual.rds")
+diff_storage_annual <- read_rds("../output/diff_storage_annual.rds")
+```
+
+
+###Group annual data into mean annual data
+
+```{r}
+data_mean_annual <- data_annual %>% 
+  dplyr::group_by(watershed, biomass) %>% 
+  dplyr::summarise_all(mean) %>% 
+  dplyr::select(-wy)
+
+#View(data_mean_annual)
+```
+
+***
+###Plot mean annual flux data
+
+```{r, results='hide'}
+
+mean_annual_fig <- function(data, var){
+  x <- ggplot(data) +
+    geom_col(aes_string(x="biomass", y=var)) +
+    facet_grid(.~watershed) +
+    labs(title=var) +
+    NULL
+  return(x)
+}
+
+purrr::map(flux_var, mean_annual_fig, data=data_mean_annual)
+```
+
+***
+###Plot mean annual storage data
+
+```{r message=FALSE, results='hide'}
+
+purrr::map(storage_var, mean_annual_fig, data=data_mean_annual)
+```
+
+
+
+
+
+
+

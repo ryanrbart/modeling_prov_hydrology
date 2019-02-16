@@ -1,0 +1,61 @@
+---
+title: "Analysis of Annual Fluxes and Storages"
+output:
+  html_notebook: default
+  html_document:
+    theme: united
+    df_print: paged
+  pdf_document: default
+---
+
+### Load libraries and functions
+
+```{r message=FALSE, warning=FALSE}
+source("0_utilities.R")
+```
+
+### Import the previously processed data
+
+```{r Import data}
+data_annual <- read_csv("../output/data_annual.csv",
+                        col_types = list(watershed = col_factor(),
+                                         biomass = col_factor()))
+
+diff_flux_annual <- read_rds("../output/diff_flux_annual.rds")
+diff_storage_annual <- read_rds("../output/diff_storage_annual.rds")
+```
+
+### Plot relative change for fluxes for 50% thinning scenario
+
+```{r, results='hide'}
+
+annual_fig <- function(.x=data, .y=var_name){
+  x <- ggplot(.x) +
+    geom_col(aes(x=wy, y=relative_50)) +
+    facet_grid(.~watershed) +
+    labs(title=.y) +
+    NULL
+  return(x)
+}
+purrr::map2(.x=diff_flux_annual,.y=flux_var, .f=annual_fig)
+
+```
+
+### Plot relative change for storages for 50% thinning scenario
+
+```{r, results='hide'}
+
+purrr::map2(.x=diff_storage_annual,.y=storage_var, .f=annual_fig)
+
+```
+
+
+
+
+
+
+
+
+
+
+
