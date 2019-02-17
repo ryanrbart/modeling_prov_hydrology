@@ -1,0 +1,62 @@
+---
+title: "Analysis of Annual Fluxes and Storages"
+output:
+  html_notebook: default
+  html_document:
+    theme: united
+    df_print: paged
+  pdf_document: default
+---
+
+### Load libraries and functions
+
+```{r message=FALSE, warning=FALSE}
+source("0_utilities.R")
+```
+
+### Import the previously processed data
+
+```{r Import data}
+data_seasonal <- read_csv("../output/data_seasonal.csv",
+                        col_types = list(wy = col_character(),
+                                        season = col_factor(levels = c("Jan-Mar",
+                                                                       "Apr-Jun",
+                                                                       "Jul-Sep",
+                                                                       "Oct-Dec")),
+                                         watershed = col_factor(),
+                                         biomass = col_factor()))
+
+diff_flux_seasonal <- read_rds("../output/diff_flux_seasonal.rds")
+diff_storage_seasonal <- read_rds("../output/diff_storage_seasonal.rds")
+
+```
+
+### Plot relative change for fluxes for 50% thinning scenario
+
+```{r, results='hide'}
+
+seasonal_fig <- function(.x=data, .y=var_name){
+  x <- ggplot(.x) +
+    geom_col(aes(x=wy, y=relative_50)) +
+    facet_grid(season~watershed, labeller = labeller()) +
+    labs(title=.y) +
+    theme(axis.text.x = element_text(angle = 270, hjust=0, vjust=0.6)) +
+    NULL
+  return(x)
+}
+purrr::map2(.x=diff_flux_seasonal,.y=flux_var, .f=seasonal_fig)
+
+```
+
+
+### Plot relative change for storages for 50% thinning scenario
+
+```{r, results='hide'}
+
+purrr::map2(.x=diff_storage_seasonal,.y=storage_var, .f=seasonal_fig)
+
+```
+
+
+
+
