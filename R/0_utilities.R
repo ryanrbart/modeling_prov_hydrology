@@ -37,7 +37,7 @@ flux_var <- c("Snowfall","SnowSubl","del_snowpack","Streamflow",
 storage_var <- c("Tmax","Tmin","GW_sto","Snowpack",
                  "SatDef_dep","SatDef_Vol","Unsat_Sto","RZ_sto",
                  "LitterSto","CanopySto","RZ_sto","Det_sto",
-                 "%SatArea","%SCA","LAI")
+                 "SatArea","SCA","LAI")
 
 
 

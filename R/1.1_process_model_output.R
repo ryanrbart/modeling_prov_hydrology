@@ -56,7 +56,8 @@ data_daily <- data_daily %>%
   dplyr::mutate(season = factor(case_when(WYD >= 0 & WYD <= 92 ~ "Oct-Dec",
                                    WYD >= 93 & WYD <= 182 ~ "Jan-Mar",
                                    WYD >= 183 & WYD <= 273 ~ "Apr-Jun",
-                                   WYD >= 274 & WYD <= 365 ~ "Jul-Sep")))
+                                   WYD >= 274 & WYD <= 365 ~ "Jul-Sep"))) %>% 
+  dplyr::rename(SatArea = `%SatArea`, SCA = `%SCA`)
 
 # ---------------------------------------------------------------------
 # Summarize data by wateryear and season
@@ -94,8 +95,8 @@ data_annual <- data_daily %>%
                    CanopySto = mean(CanopySto),
                    RZ_sto = mean(RZ_sto),
                    Det_sto = mean(Det_sto),
-                   `%SatArea` = mean(`%SatArea`),
-                   `%SCA` = mean(`%SCA`),
+                   SatArea = mean(SatArea),
+                   SCA = mean(SCA),
                    LAI = mean(LAI)
   )
 
@@ -133,8 +134,8 @@ data_seasonal <- data_daily %>%
                    CanopySto = mean(CanopySto),
                    RZ_sto = mean(RZ_sto),
                    Det_sto = mean(Det_sto),
-                   `%SatArea` = mean(`%SatArea`),
-                   `%SCA` = mean(`%SCA`),
+                   SatArea = mean(SatArea),
+                   SCA = mean(SCA),
                    LAI = mean(LAI)
   )
 

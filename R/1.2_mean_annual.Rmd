@@ -1,24 +1,25 @@
 ---
 title: "Analysis of Mean Annual Fluxes and Storages"
 output:
+  html_notebook: default
   html_document:
     theme: united
     df_print: paged
-  html_notebook: default
   pdf_document: default
 ---
 
-###Load libraries and functions
+### Load libraries and functions
 
 ```{r message=FALSE, warning=FALSE}
 source("0_utilities.R")
 ```
 
-###Import the previously processed data
+### Import the previously processed data
 
 ```{r Import data}
 data_annual <- read_csv("../output/data_annual.csv",
-                        col_types = list(watershed = col_factor(),
+                        col_types = list(wy = col_character(),
+                                         watershed = col_factor(),
                                          biomass = col_factor()))
 
 diff_flux_annual <- read_rds("../output/diff_flux_annual.rds")
@@ -26,19 +27,17 @@ diff_storage_annual <- read_rds("../output/diff_storage_annual.rds")
 ```
 
 
-###Group annual data into mean annual data
+### Group annual data into mean annual data
 
 ```{r}
 data_mean_annual <- data_annual %>% 
+    dplyr::select(-wy) %>% 
   dplyr::group_by(watershed, biomass) %>% 
-  dplyr::summarise_all(mean) %>% 
-  dplyr::select(-wy)
-
-#View(data_mean_annual)
+  dplyr::summarise_all(mean)
 ```
 
 ***
-###Plot mean annual flux data
+### Plot mean annual flux data
 
 ```{r, results='hide'}
 
@@ -55,7 +54,7 @@ purrr::map(flux_var, mean_annual_fig, data=data_mean_annual)
 ```
 
 ***
-###Plot mean annual storage data
+### Plot mean annual storage data
 
 ```{r message=FALSE, results='hide'}
 

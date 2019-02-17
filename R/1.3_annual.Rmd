@@ -18,7 +18,8 @@ source("0_utilities.R")
 
 ```{r Import data}
 data_annual <- read_csv("../output/data_annual.csv",
-                        col_types = list(watershed = col_factor(),
+                        col_types = list(wy = col_character(),
+                                         watershed = col_factor(),
                                          biomass = col_factor()))
 
 diff_flux_annual <- read_rds("../output/diff_flux_annual.rds")
@@ -34,6 +35,7 @@ annual_fig <- function(.x=data, .y=var_name){
     geom_col(aes(x=wy, y=relative_50)) +
     facet_grid(.~watershed) +
     labs(title=.y) +
+    theme(axis.text.x = element_text(angle = 270, hjust=0, vjust=0.6)) +
     NULL
   return(x)
 }
@@ -50,7 +52,24 @@ purrr::map2(.x=diff_storage_annual,.y=storage_var, .f=annual_fig)
 ```
 
 
+### Generate chart of annual water balance
 
+This code stacks the variables transpiration, evaporation, streamflow and Residual, which is defined as precipitation minus transpiration, evaporation, streamfl
+
+```{r, results='hide'}
+data_annual_stacked <- data_annual %>% 
+  dplyr::mutate(Residual = Precip-Streamflow-Evap-Transp) %>% 
+  tidyr::gather(Streamflow, Evap, Transp, Residual, key="flux", value="flux_value") %>% 
+  mutate(x_label = factor(str_replace(interaction(wy, biomass), '\\.', ' / '), ordered=TRUE))
+
+x <- data_annual_stacked %>% 
+  ggplot(.) +
+  geom_col(aes(x=x_label,y=flux_value, fill=flux), width = .7, position = "stack") +
+  facet_grid(watershed~.) +
+  theme(axis.text.x = element_text(angle = 270, hjust=0, vjust=0.6)) +
+  NULL
+plot(x)
+```
 
 
 
