@@ -12,6 +12,9 @@ library(purrr)
 library(lubridate)
 library(broom)
 library(stringr)
+library(cowplot)
+library(forcats)
+library(shiny)
 
 
 # ---------------------------------------------------------------------
@@ -28,16 +31,14 @@ library(stringr)
 # ---------------------------------------------------------------------
 # Variables
 
-flux_var <- c("Snowfall","SnowSubl","del_snowpack","Streamflow",
-              "Evap","Transp","Precip","PET",
-              "Baseflow","ReturnFlow","Rainfall","RZ_drain",
-              "Unsat_drain","CapRise","GW_out","R_Tfall",
+flux_var <- c("Precip","Rainfall","Snowfall","SnowSubl","del_snowpack",
+              "Evap","Transp","PET",
+              "Streamflow","Baseflow","ReturnFlow","GW_out",
+              "RZ_drain","Unsat_drain","CapRise","R_Tfall",
               "S_Tfall","Photosyn")
 
-storage_var <- c("Tmax","Tmin","GW_sto","Snowpack",
-                 "SatDef_dep","SatDef_Vol","Unsat_Sto","RZ_sto",
-                 "LitterSto","CanopySto","RZ_sto","Det_sto",
-                 "SatArea","SCA","LAI")
-
+storage_var <- c("Tmax","Tmin","Snowpack","LitterSto","CanopySto",
+                 "RZ_sto","Unsat_Sto","SatDef_dep","SatDef_Vol","GW_sto",
+                 "Det_sto","SatArea","SCA","LAI")
 
 
