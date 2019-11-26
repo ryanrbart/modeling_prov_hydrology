@@ -1,0 +1,149 @@
+---
+title: "Analysis of Daily Fluxes and Storages"
+output:
+  html_document:
+    theme: united
+    df_print: paged
+  html_notebook: default
+  pdf_document: default
+---
+
+
+```{r message=FALSE, warning=FALSE}
+source("0_utilities.R")
+```
+
+
+
+```{r Import data}
+data_daily <- read_csv("../output/data_daily.csv",
+                       col_types = list(wy = col_character(),
+                                        run = col_factor(),
+                                        season = col_factor(levels = c("Jan-Mar",
+                                                                       "Apr-Jun",
+                                                                       "Jul-Sep",
+                                                                       "Oct-Dec")),
+                                        biomass = col_factor(),
+                                        watershed = col_factor()))
+
+diff_flux_daily <- read_rds("../output/diff_flux_daily.rds")
+diff_storage_daily <- read_rds("../output/diff_storage_daily.rds")
+
+```
+
+
+***
+### Chart of temperature
+
+```{r, results='hide', fig.height=14, fig.width=10}
+
+shed_scen = "p301_50"
+
+x <- data_daily %>% 
+  dplyr::filter(run==shed_scen) %>% 
+  ggplot(.) +
+  geom_line(aes(x=WYD,y=Tmax), color="red") +
+  geom_line(aes(x=WYD,y=Tmin), color="blue") +
+  geom_hline(yintercept = 0, color="black") +
+  labs(title=shed_scen,
+       x="Water Year Day",
+       y="Temp, C") +
+  facet_grid(wy~.) +
+  scale_x_continuous(breaks=c(0,50,100,150,200,250,300,350), labels = c(0,50,100,150,200,250,300,350)) +
+  theme_bw(base_size = 13) +
+  NULL
+plot(x)
+```
+
+
+
+***
+### Chart of snow
+
+```{r, results='hide', fig.height=10, fig.width=12}
+
+shed_scen = "p301_50"
+wy_selected = 2004
+
+ylim.prim <- range(data_daily$Snowfall)   # snowfall
+ylim.sec <-  range(data_daily$Snowpack)    # snowpack
+
+b <- diff(ylim.prim)/diff(ylim.sec)
+a <- b*(ylim.prim[1] - ylim.sec[1])
+
+x <- data_daily %>% 
+  #dplyr::filter(run==shed_scen) %>% 
+  dplyr::filter(wy==wy_selected) %>% 
+  ggplot(.) +
+  geom_col(aes(x=WYD,y=Snowfall), color="gray20") +  
+  #geom_line(aes(x=WYD,y=a+b*`Cum snow`), color="red") +
+  geom_line(aes(x=WYD,y=a+b*Snowpack), color="blue") +
+  geom_hline(yintercept = 0, color="black") +
+  #facet_grid(run~wy) +
+  facet_grid(run~.) +
+  #facet_grid(wy~.) +
+  #ggtitle(shed_scen) +
+  ggtitle(wy_selected) +
+  scale_y_continuous(name="Snowfall (mm)", sec.axis = sec_axis(~ (. - a)/b, name = "Snowpack (mm)")) +
+  scale_x_continuous(name="Water Year Day", breaks=c(0,50,100,150,200,250,300,350), labels = c(0,50,100,150,200,250,300,350)) +
+  theme_bw(base_size = 13) +
+  #theme(axis.text.x = element_text(angle = 270, hjust=0, vjust=0.6)) +
+  NULL
+plot(x)
+```
+
+
+
+***
+### Chart of PET and fluxes
+
+```{r, results='hide', fig.height=10, fig.width=12}
+
+shed_scen = "p301_50"
+wy_selected = 2004
+
+x <- data_daily %>% 
+  #dplyr::filter(run==shed_scen) %>% 
+  dplyr::filter(wy==wy_selected) %>% 
+  ggplot(.) +
+  geom_col(aes(x=WYD,y=Snowfall), color="gray20") +  
+  #geom_line(aes(x=WYD,y=a+b*`Cum snow`), color="red") +
+  geom_line(aes(x=WYD,y=a+b*Snowpack), color="blue") +
+  geom_hline(yintercept = 0, color="black") +
+  #facet_grid(run~wy) +
+  facet_grid(run~.) +
+  #facet_grid(wy~.) +
+  #ggtitle(shed_scen) +
+  ggtitle(wy_selected) +
+  scale_y_continuous(name="Snowfall (mm)", sec.axis = sec_axis(~ (. - a)/b, name = "Snowpack (mm)")) +
+  scale_x_continuous(name="Water Year Day", breaks=c(0,50,100,150,200,250,300,350), labels = c(0,50,100,150,200,250,300,350)) +
+  theme_bw(base_size = 13) +
+  #theme(axis.text.x = element_text(angle = 270, hjust=0, vjust=0.6)) +
+  NULL
+plot(x)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
