@@ -1,11 +1,11 @@
 ---
 title: "Analysis of Annual Fluxes and Storages"
 output:
+  pdf_document: default
   html_notebook: default
   html_document:
     theme: united
     df_print: paged
-  pdf_document: default
 ---
 
 ### Load libraries and functions
@@ -17,61 +17,126 @@ source("0_utilities.R")
 ### Import the previously processed data
 
 ```{r Import data}
+# A single data frame with each variable
 data_annual <- read_csv("../output/data_annual.csv",
                         col_types = list(wy = col_character(),
                                          watershed = col_factor(),
                                          biomass = col_factor()))
 
+# A list of data frames for each flux that has been differenced
 diff_flux_annual <- read_rds("../output/diff_flux_annual.rds")
 diff_storage_annual <- read_rds("../output/diff_storage_annual.rds")
 ```
 
-### Plot relative change for fluxes for 50% thinning scenario
+***
+### Chart of annual water balance (based on bales2018 pub)
 
-```{r, results='hide'}
+This code stacks the variables transpiration, evaporation, streamflow and Residual, which is defined as precipitation minus transpiration, evaporation, streamflow. Residual is water that leaks out of the watershed.
 
-annual_fig <- function(.x=data, .y=var_name){
-  x <- ggplot(.x) +
-    geom_col(aes(x=wy, y=relative_50)) +
-    facet_grid(.~watershed) +
-    labs(title=.y) +
-    theme(axis.text.x = element_text(angle = 270, hjust=0, vjust=0.6)) +
-    NULL
-  return(x)
-}
-purrr::map2(.x=diff_flux_annual,.y=flux_var, .f=annual_fig)
-
-```
-
-### Plot relative change for storages for 50% thinning scenario
-
-```{r, results='hide'}
-
-purrr::map2(.x=diff_storage_annual,.y=storage_var, .f=annual_fig)
-
-```
-
-
-### Generate chart of annual water balance
-
-This code stacks the variables transpiration, evaporation, streamflow and Residual, which is defined as precipitation minus transpiration, evaporation, streamfl
-
-```{r, results='hide'}
+```{r, results='hide', fig.height=8, fig.width=12}
 data_annual_stacked <- data_annual %>% 
-  dplyr::mutate(Residual = Precip-Streamflow-Evap-Transp) %>% 
+  dplyr::mutate(Residual = Precip-Streamflow-Evap-Transp, 
+                Evap = -1*Evap,
+                Transp = -1*Transp) %>% 
   tidyr::gather(Streamflow, Evap, Transp, Residual, key="flux", value="flux_value") %>% 
-  mutate(x_label = factor(str_replace(interaction(wy, biomass), '\\.', ' / '), ordered=TRUE))
+  mutate(x_label = forcats::as_factor(str_replace(interaction(wy, biomass), '\\.', ' / ')))
+
+data_annual_stacked$flux <- factor(data_annual_stacked$flux, levels = c("Residual", "Streamflow", "Evap", "Transp"))
 
 x <- data_annual_stacked %>% 
   ggplot(.) +
   geom_col(aes(x=x_label,y=flux_value, fill=flux), width = .7, position = "stack") +
   facet_grid(watershed~.) +
+  scale_fill_manual(values = c("#b2df8a","#1f78b4","#a6cee3","#33a02c")) +
+  theme_bw(base_size = 11) +
   theme(axis.text.x = element_text(angle = 270, hjust=0, vjust=0.6)) +
   NULL
 plot(x)
 ```
 
+***
+### Plot cowplot showing relative change for fluxes for 50% thinning scenario over plot of annual flux
 
+##### Top Plot
+* x-axis: Wateryear (wy)
+* y-axis: relative_50
+    * Relative difference (%) between 50% thinning scenario and baseline (no thinning scenario)
+
+##### Bottom Plot
+* x-axis: Wateryear (wy)
+* y-axis: Variable
+
+
+```{r, message=FALSE, warning=FALSE, results='hide'}
+
+annual_fig <- function(.x=data, .y=var_name){
+  # Make difference plot
+  x <- ggplot(data = .x) +
+    geom_col(aes(x=wy, y=relative_50)) +
+    facet_grid(.~watershed) +
+    labs(title=.y, y="Change (%)") +
+    theme_bw(base_size = 10) +
+    theme(axis.text.x = element_text(angle = 270, hjust=0, vjust=0.6)) +
+    NULL
+  
+  # Make annual plot
+  y <- ggplot(data = .x) +
+    geom_col(aes(x=wy, y=`100`)) +
+    facet_grid(.~watershed) +
+    labs(title=.y, y="Unthinned Value") +
+    theme_grey(base_size = 10) +
+    theme(axis.text.x = element_text(angle = 270, hjust=0, vjust=0.6)) +
+    NULL
+  
+  # Make cowplot
+  z <- cowplot::plot_grid(x,
+                          y,
+                          nrow=2)
+  
+  return(z)
+}
+
+purrr::map2(.x=diff_flux_annual,.y=flux_var, .f=annual_fig)
+
+```
+
+***
+### Plot relative change for storages for 50% thinning scenario
+
+* x-axis: Wateryear (wy)
+* y-axis: relative_50
+    * Relative difference (%) between 50% thinning scenario and baseline (no thinning scenario)
+
+
+```{r, message=FALSE, warning=FALSE, results='hide'}
+
+purrr::map2(.x=diff_storage_annual,.y=storage_var, .f=annual_fig)
+
+```
+
+***
+### Generate chart of annual water balance
+
+This code stacks the variables transpiration, evaporation, streamflow and Residual, which is defined as precipitation minus transpiration, evaporation, streamflow.
+
+```{r, results='hide', fig.height=8, fig.width=12}
+data_annual_stacked <- data_annual %>% 
+  dplyr::mutate(Residual = Precip-Streamflow-Evap-Transp) %>% 
+  tidyr::gather(Streamflow, Evap, Transp, Residual, key="flux", value="flux_value") %>% 
+  mutate(x_label = as_factor(str_replace(interaction(wy, biomass), '\\.', ' / ')))
+
+data_annual_stacked$flux <- factor(data_annual_stacked$flux, levels = c("Residual", "Streamflow", "Evap", "Transp"))
+
+x <- data_annual_stacked %>% 
+  ggplot(.) +
+  geom_col(aes(x=x_label,y=flux_value, fill=flux), width = .7, position = "stack") +
+  facet_grid(watershed~.) +
+  scale_fill_manual(values = c("#b2df8a","#1f78b4","#a6cee3","#33a02c")) +
+  theme_bw(base_size = 11) +
+  theme(axis.text.x = element_text(angle = 270, hjust=0, vjust=0.6)) +
+  NULL
+plot(x)
+```
 
 
 

@@ -1,5 +1,5 @@
 ---
-title: "Analysis of Mean Annual Fluxes and Storages"
+title: "Analysis of Mean Seasonal Fluxes and Storages"
 output:
   html_document:
     theme: united
@@ -18,28 +18,33 @@ source("0_utilities.R")
 
 ```{r Import data}
 # A single data frame with each variable
-data_annual <- read_csv("../output/data_annual.csv",
+data_seasonal <- read_csv("../output/data_seasonal.csv",
                         col_types = list(wy = col_character(),
+                                        season = col_factor(levels = c("Jan-Mar",
+                                                                       "Apr-Jun",
+                                                                       "Jul-Sep",
+                                                                       "Oct-Dec")),
                                          watershed = col_factor(),
                                          biomass = col_factor()))
 
 # A list of data frames for each flux that has been differenced
-diff_flux_annual <- read_rds("../output/diff_flux_annual.rds")
-diff_storage_annual <- read_rds("../output/diff_storage_annual.rds")
+diff_flux_seasonal <- read_rds("../output/diff_flux_seasonal.rds")
+diff_storage_seasonal <- read_rds("../output/diff_storage_seasonal.rds")
+
 ```
 
-
-### Group annual data into mean annual data
+### Group seasonal data into mean seasonal data
 
 ```{r}
-data_mean_annual <- data_annual %>% 
+data_mean_seasonal <- data_seasonal %>% 
   dplyr::select(-wy) %>% 
-  dplyr::group_by(watershed, biomass) %>% 
+  dplyr::group_by(watershed, biomass, season) %>% 
   dplyr::summarise_all(mean)
 ```
 
+
 ***
-### Plot mean annual flux data
+### Plot mean seasonal flux data
 
 * Data averaged over 11 time period from 2004 to 2014.
 * x-axis: Biomass Variable
@@ -47,25 +52,27 @@ data_mean_annual <- data_annual %>%
     * 80: 20% thinning
     * 50: 50% thinning
 * y-axis: Variable of interest
-    * Summed per year
+    * Summed per season/year
 
 
 ```{r, warning=FALSE,  results='hide'}
 
-mean_annual_fig <- function(data, var){
+mean_seasonal_fig <- function(data, var){
   x <- ggplot(data) +
     geom_col(aes_string(x="biomass", y=var)) +
-    facet_grid(.~watershed) +
+    facet_grid(season~watershed) +
     labs(title=var) +
     NULL
   return(x)
 }
 
-purrr::map(flux_var, mean_annual_fig, data=data_mean_annual)
+purrr::map(flux_var, mean_seasonal_fig, data=data_mean_seasonal)
 ```
 
+
+
 ***
-### Plot mean annual storage data
+### Plot mean seasonal storage data
 
 * Data averaged over 11 time period from 2004 to 2014.
 * x-axis: Biomass Variable
@@ -73,16 +80,11 @@ purrr::map(flux_var, mean_annual_fig, data=data_mean_annual)
     * 80: 20% thinning
     * 50: 50% thinning
 * y-axis: Variable of interest
-    * Mean value per year
+    * Mean value per season/year
 
 ```{r warning=FALSE, results='hide'}
 
-purrr::map(storage_var, mean_annual_fig, data=data_mean_annual)
+purrr::map(storage_var, mean_seasonal_fig, data=data_mean_seasonal)
 ```
-
-
-
-
-
 
 
