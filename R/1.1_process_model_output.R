@@ -87,8 +87,10 @@ data_daily <- data_daily %>%
 
 # Calculate canopy and litter evaporation
 data_daily <- data_daily %>% 
+  dplyr::group_by(run) %>% 
   dplyr::mutate(canopy_evap = if_else(Precip > 0.000001, 0, lag(CanopySto) - CanopySto),
-                litter_evap = if_else(Precip > 0.000001, 0, lag(LitterSto) - LitterSto))
+                litter_evap = if_else(Precip > 0.000001, 0, lag(LitterSto) - LitterSto)) %>% 
+  dplyr::ungroup()
 
 
 # ---------------------------------------------------------------------
@@ -117,8 +119,8 @@ data_annual <- data_daily %>%
                    WB_Residual = sum(WB_Residual),
                    Evap_neg = sum(Evap_neg),
                    Transp_neg = sum(Transp_neg),
-                   canopy_evap = sum(canopy_evap),
-                   litter_evap = sum(litter_evap),
+                   canopy_evap = sum(canopy_evap, na.rm=TRUE),
+                   litter_evap = sum(litter_evap, na.rm=TRUE),
                    
                    Tmax = mean(Tmax),
                    Tmin = mean(Tmin),
@@ -162,8 +164,8 @@ data_seasonal <- data_daily %>%
                    WB_Residual = sum(WB_Residual),
                    Evap_neg = sum(Evap_neg),
                    Transp_neg = sum(Transp_neg),
-                   canopy_evap = sum(canopy_evap),
-                   litter_evap = sum(litter_evap),
+                   canopy_evap = sum(canopy_evap, na.rm=TRUE),
+                   litter_evap = sum(litter_evap, na.rm=TRUE),
                    
                    Tmax = mean(Tmax),
                    Tmin = mean(Tmin),
