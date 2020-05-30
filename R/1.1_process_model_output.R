@@ -67,6 +67,30 @@ data_daily <- data_daily %>%
                                            "Oct-Dec"))) %>% 
   dplyr::rename(SatArea = `%SatArea`, SCA = `%SCA`)
 
+
+# Compute additional variables
+# Water balance residual
+data_daily <- data_daily %>% 
+  dplyr::mutate(WB_Residual = Precip-Streamflow-Evap-Transp,
+                Evap_neg = -1*Evap,
+                Transp_neg = -1*Transp,
+                Sat_sto = (5000 - SatDef_dep)*0.5,  # SatDef_Vol (SatDef_dep*0.5) is volume of space that is not saturated. Should be equal or greater than unsat + rz
+                Total_sto = Sat_sto + RZ_sto + Unsat_Sto)
+
+# Subsurface storage by depth
+# data_daily %>% 
+#   dplyr::mutate(happy = SatDef_dep)
+
+# Get rid of erroneous values (WYD365 for P304 has no data for WY2014 for all three scenarios)
+data_daily <- data_daily %>% 
+  dplyr::filter(!(wy == 2014 & WYD == 365 & watershed == "p304"))
+
+# Calculate canopy and litter evaporation
+data_daily <- data_daily %>% 
+  dplyr::mutate(canopy_evap = if_else(Precip > 0.000001, 0, lag(CanopySto) - CanopySto),
+                litter_evap = if_else(Precip > 0.000001, 0, lag(LitterSto) - LitterSto))
+
+
 # ---------------------------------------------------------------------
 # Summarize data by wateryear and season
 
@@ -90,6 +114,11 @@ data_annual <- data_daily %>%
                    R_Tfall = sum(R_Tfall),
                    S_Tfall = sum(S_Tfall),
                    Photosyn = sum(Photosyn),
+                   WB_Residual = sum(WB_Residual),
+                   Evap_neg = sum(Evap_neg),
+                   Transp_neg = sum(Transp_neg),
+                   canopy_evap = sum(canopy_evap),
+                   litter_evap = sum(litter_evap),
                    
                    Tmax = mean(Tmax),
                    Tmin = mean(Tmin),
@@ -104,7 +133,9 @@ data_annual <- data_daily %>%
                    Det_sto = mean(Det_sto),
                    SatArea = mean(SatArea),
                    SCA = mean(SCA),
-                   LAI = mean(LAI)
+                   LAI = mean(LAI),
+                   Sat_sto = mean(Sat_sto),
+                   Total_sto = mean(Total_sto)
   )
 
 
@@ -128,6 +159,11 @@ data_seasonal <- data_daily %>%
                    R_Tfall = sum(R_Tfall),
                    S_Tfall = sum(S_Tfall),
                    Photosyn = sum(Photosyn),
+                   WB_Residual = sum(WB_Residual),
+                   Evap_neg = sum(Evap_neg),
+                   Transp_neg = sum(Transp_neg),
+                   canopy_evap = sum(canopy_evap),
+                   litter_evap = sum(litter_evap),
                    
                    Tmax = mean(Tmax),
                    Tmin = mean(Tmin),
@@ -142,7 +178,9 @@ data_seasonal <- data_daily %>%
                    Det_sto = mean(Det_sto),
                    SatArea = mean(SatArea),
                    SCA = mean(SCA),
-                   LAI = mean(LAI)
+                   LAI = mean(LAI),
+                   Sat_sto = mean(Sat_sto),
+                   Total_sto = mean(Total_sto)
   )
 
 
@@ -220,6 +258,28 @@ diff_flux_daily <- setNames(diff_flux_daily, flux_var)
 diff_flux_seasonal <- setNames(diff_flux_seasonal, flux_var)
 diff_flux_annual <- setNames(diff_flux_annual, flux_var)
 
+# 'Fix' absolute change for negative fluxes (used in Roger's water balance plot)
+diff_flux_daily$Transp_neg <- diff_flux_daily$Transp_neg %>% 
+  dplyr::mutate(absolute_80 = -1*absolute_80,
+                absolute_50 = -1*absolute_50)
+diff_flux_seasonal$Transp_neg <- diff_flux_seasonal$Transp_neg %>% 
+  dplyr::mutate(absolute_80 = -1*absolute_80,
+                absolute_50 = -1*absolute_50)
+diff_flux_annual$Transp_neg <- diff_flux_annual$Transp_neg %>% 
+  dplyr::mutate(absolute_80 = -1*absolute_80,
+                absolute_50 = -1*absolute_50)
+
+diff_flux_daily$Evap_neg <- diff_flux_daily$Evap_neg %>% 
+  dplyr::mutate(absolute_80 = -1*absolute_80,
+                absolute_50 = -1*absolute_50)
+diff_flux_seasonal$Evap_neg <- diff_flux_seasonal$Evap_neg %>% 
+  dplyr::mutate(absolute_80 = -1*absolute_80,
+                absolute_50 = -1*absolute_50)
+diff_flux_annual$Evap_neg <- diff_flux_annual$Evap_neg %>% 
+  dplyr::mutate(absolute_80 = -1*absolute_80,
+                absolute_50 = -1*absolute_50)
+
+
 
 # Process Storages
 for (aa in seq_along(storage_var)){
@@ -266,3 +326,4 @@ write_rds(diff_flux_annual, path="output/diff_flux_annual.rds")
 write_rds(diff_storage_daily, path="output/diff_storage_daily.rds")
 write_rds(diff_storage_seasonal, path="output/diff_storage_seasonal.rds")
 write_rds(diff_storage_annual, path="output/diff_storage_annual.rds")
+
