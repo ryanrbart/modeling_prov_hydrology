@@ -1,4 +1,5 @@
 # Generate standard water balance figure
+# Includes code for manuscript Figure 2
 
 
 source("R/0_utilities.R")

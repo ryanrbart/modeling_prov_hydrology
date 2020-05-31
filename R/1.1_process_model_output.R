@@ -90,6 +90,8 @@ data_daily <- data_daily %>%
   dplyr::group_by(run) %>% 
   dplyr::mutate(canopy_evap = if_else(Precip > 0.000001, 0, lag(CanopySto) - CanopySto),
                 litter_evap = if_else(Precip > 0.000001, 0, lag(LitterSto) - LitterSto)) %>% 
+  # dplyr::mutate(litter_evap = if_else(Evap-SnowSubl-canopy_evap < litter_evap, max(0, Evap-SnowSubl-canopy_evap), litter_evap),
+  #               canopy_evap = if_else(Evap-SnowSubl < canopy_evap, max(0, Evap-SnowSubl), canopy_evap)) %>% 
   dplyr::ungroup()
 
 

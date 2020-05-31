@@ -1,5 +1,5 @@
-# Figures annual vegetation change water balance
-# As of 2020-05-30, includes code for manuscript figures 3, 4 & 5
+# Figures for annual vegetation change water balance
+# Includes code for manuscript figures 3, 4 & 5
 
 
 
@@ -110,7 +110,6 @@ evap_change <- diff_flux_annual_stacked %>%
                 evap_50_allocated = deltaEu_50)
 
 
-
 # Calculate transpiration partitioned
 # deltaT_u = T_post_u - T_pre_u (See equations in publication appendix)
 transp_change <- diff_flux_annual_stacked %>% 
@@ -138,7 +137,7 @@ storage_change_soil <- diff_storage_daily$Total_sto %>%
   dplyr::filter(WYD %in% c(364))
 
 
-# Calculate gw storage change
+# Calculate gw storage partitioned
 storage_change_gw <- diff_storage_daily$GW_sto %>% 
   dplyr::filter(WYD %in% c(1, 364)) %>%                  # Compare storage on the first and last data of wateryear (364 used because of some missing data with WYD365)
   dplyr::group_by(watershed) %>% 
@@ -150,7 +149,7 @@ storage_change_gw <- diff_storage_daily$GW_sto %>%
   dplyr::filter(WYD %in% c(364))
 
 
-# Calculate total storage change
+# Calculate total storage partitioned
 storage_change <- storage_change_soil %>%
   dplyr::select(wy, WYD, watershed, soilstorage_50_allocated, soilstorage_80_allocated) %>% 
   dplyr::full_join(., dplyr::select(storage_change_gw, wy, WYD, watershed,

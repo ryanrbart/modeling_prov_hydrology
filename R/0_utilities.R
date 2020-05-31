@@ -27,6 +27,12 @@ library(patchwork)
 # ---------------------------------------------------------------------
 # Functions
 
+wy_to_y = function(wy, wyd){
+  y = ifelse(wyd <= 92, wy - 1, wy)
+  return(y)
+}
+
+
 wyd_to_yd = function(wyd, y){
   
   if (lubridate::leap_year(y) == TRUE){
@@ -36,6 +42,7 @@ wyd_to_yd = function(wyd, y){
   }
   return(yd)
 }
+
 
 yd_to_month = function(yd, y){
   if (lubridate::leap_year(y) == TRUE){
