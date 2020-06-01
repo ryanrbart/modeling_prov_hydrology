@@ -111,66 +111,38 @@ print(mean_watershed)
 # ---------------------------------------------------------------------
 # ---------------------------------------------------------------------
 # ---------------------------------------------------------------------
-# Find mean value for water made available by treatments
+# Find mean values for water made available and partitioned by treatments
+# Also serves a check on vegetation change water balance
 
-# 20% thinning scenario (by E and T)
-aa <- veg_change_water_balance %>% 
-  dplyr::filter(scenario == 80, balance_component=="conserved") %>% 
-  dplyr::group_by(flux) %>% 
-  dplyr::summarise(value = mean(value))
 
-# 20% thinning scenario (by ET)
-bb <- aa %>% 
-  dplyr::ungroup() %>% 
-  dplyr::summarise(value = sum(value))    
-as.numeric(bb)
-  
 
-# 50% thinning scenario (by E and T)
-aa <- veg_change_water_balance %>% 
-  dplyr::filter(scenario == 50, balance_component=="conserved") %>% 
-  dplyr::group_by(flux) %>% 
-  dplyr::summarise(value = mean(value))
+veg_change_water_balance_mean <- function(veg_change_water_balance_input, scenario_input, balance_component_input){
+  conserved_mean_by_flux <- veg_change_water_balance_input %>% 
+    dplyr::filter(scenario == scenario_input, balance_component==balance_component_input) %>% 
+    dplyr::group_by(flux) %>% 
+    dplyr::summarise(value = mean(value))
+  conserved_mean <- conserved_mean_by_flux %>% 
+    dplyr::ungroup() %>% 
+    dplyr::summarise(value = sum(value))    
+  print(conserved_mean_by_flux)
+  print(paste("Total flux:", as.numeric(conserved_mean)))
+}
 
-# 50% thinning scenario (by ET)
-bb <- aa %>% 
-  dplyr::ungroup() %>% 
-  dplyr::summarise(value = sum(value))    
-as.numeric(bb)
-  
 
-# ---------------------------------------------------------------------
-# ---------------------------------------------------------------------
-# ---------------------------------------------------------------------
-# Find mean value for partitioned water 
+# -----
+# Water made available (conserved)
 
 # 20% thinning scenario
-aa <- veg_change_water_balance %>% 
-  dplyr::filter(scenario == 80, balance_component=="allocated") %>% 
-  dplyr::group_by(flux) %>% 
-  dplyr::summarise(value = mean(value))
-as.numeric(aa[4,2])
+veg_change_water_balance_mean(veg_change_water_balance_input = veg_change_water_balance, scenario_input = 80, balance_component_input = "conserved")
+# 50% thinning scenario
+veg_change_water_balance_mean(veg_change_water_balance_input = veg_change_water_balance, scenario_input = 50, balance_component_input = "conserved")
+
+# -----
+# Water partitioned (allocated)
 
 # 20% thinning scenario
-bb <- aa %>% 
-  dplyr::ungroup() %>% 
-  dplyr::summarise(value = sum(value))    
-as.numeric(bb)
-
-
+veg_change_water_balance_mean(veg_change_water_balance_input = veg_change_water_balance, scenario_input = 80, balance_component_input = "allocated")
 # 50% thinning scenario
-aa <- veg_change_water_balance %>% 
-  dplyr::filter(scenario == 50, balance_component=="allocated") %>% 
-  dplyr::group_by(flux) %>% 
-  dplyr::summarise(value = mean(value))
-as.numeric(aa[4,2])
-
-# 50% thinning scenario
-bb <- aa %>% 
-  dplyr::ungroup() %>% 
-  dplyr::summarise(value = sum(value))    
-as.numeric(bb)
-
-
+veg_change_water_balance_mean(veg_change_water_balance_input = veg_change_water_balance, scenario_input = 50, balance_component_input = "allocated")
 
 
