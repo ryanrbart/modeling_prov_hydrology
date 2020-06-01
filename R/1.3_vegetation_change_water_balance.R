@@ -56,14 +56,46 @@ diff_storage_daily_stacked <- diff_storage_daily %>%
 # Quantify water made available from thinning
 
 
-# Calculate evaporation made available (aka conserved) 
+# Calculate evaporation made available from canopy evaporation
 # deltaE_a = Ecan_post_a - Ecan_pre_a (first component goes to 0 during post-treatment period)
-evap_conserved <- diff_flux_annual_stacked %>% 
-  dplyr::filter(flux == "canopy_evap") %>% 
-  dplyr::mutate(evap_80_conserved = `100`*0.2,
-                evap_50_conserved = `100`*0.5)
+evap_conserved1 <- diff_flux_annual_stacked %>%
+  dplyr::filter(flux == "canopy_evap") %>%
+  dplyr::mutate(evap_80_conserved1 = `100`*0.2,                        # Note: sign in code is reversed from equations in manuscript
+                evap_50_conserved1 = `100`*0.5)                        # Note: sign in code is reversed from equations in manuscript
 
-# Calculate transpiration made available (aka conserved) 
+# Calculate evaporation made available from litter, soil, and snow evaporation due to a reduction in PET  
+# See equations in publication appendix
+evap_conserved2 <- diff_flux_annual_stacked %>% 
+  dplyr::filter(flux %in% c("Evap","canopy_evap")) %>% 
+  dplyr::select(-c("absolute_80", "absolute_50", "relative_80", "relative_50")) %>% 
+  pivot_wider(names_from = "flux", values_from = c(`50`, `80`, `100`)) %>% 
+  dplyr::rename("evap_50" = `50_Evap`, "evap_80" = `80_Evap`, "evap_100" = `100_Evap`,
+                "can_evap_50" = `50_canopy_evap`, "can_evap_80" = `80_canopy_evap`, "can_evap_100" = `100_canopy_evap`) %>% 
+  # 20% thinning
+  dplyr::mutate(Eu_pre_80 = (1-0.2)*evap_100,
+                Ea_pre_wo_canopy_80 = 0.2*evap_100 - 0.2*can_evap_100,
+                percent_change_80 = evap_80/(Eu_pre_80 + Ea_pre_wo_canopy_80),
+                Ea_post_80 = Ea_pre_wo_canopy_80 * percent_change_80,
+                deltaEa_80 = Ea_post_80 - Ea_pre_wo_canopy_80) %>% 
+  # 50% thinning
+  dplyr::mutate(Eu_pre_50 = (1-0.5)*evap_100,
+                Ea_pre_wo_canopy_50 = 0.5*evap_100 - 0.5*can_evap_100,
+                percent_change_50 = evap_50/(Eu_pre_50 + Ea_pre_wo_canopy_50),
+                Ea_post_50 = Ea_pre_wo_canopy_50 * percent_change_50,
+                deltaEa_50 = Ea_post_50 - Ea_pre_wo_canopy_50) %>% 
+  dplyr::mutate(evap_80_conserved2 = -deltaEa_80,                        # Note: sign in code is reversed from equations in manuscript
+                evap_50_conserved2 = -deltaEa_50)                        # Note: sign in code is reversed from equations in manuscript
+
+# Combine both evaporation components
+evap_conserved1 <- dplyr::select(evap_conserved1, wy, watershed, evap_80_conserved1, evap_50_conserved1)
+evap_conserved2 <- dplyr::select(evap_conserved2, wy, watershed, evap_80_conserved2, evap_50_conserved2)
+evap_conserved <- evap_conserved1 %>% 
+  dplyr::full_join(., evap_conserved2, by = c("wy", "watershed")) %>% 
+  dplyr::mutate(evap_80_conserved = evap_80_conserved1 + evap_80_conserved2,
+                evap_50_conserved = evap_50_conserved1 + evap_50_conserved2)
+
+
+# Calculate transpiration made available
 # deltaT_a = T_post_a - T_pre_a (first component goes to 0 during post-treatment period)
 transp_conserved <- diff_flux_annual_stacked %>% 
   dplyr::filter(flux == "Transp") %>% 
@@ -91,21 +123,13 @@ evap_change <- diff_flux_annual_stacked %>%
                 Ea_pre_wo_canopy_80 = 0.2*evap_100 - 0.2*can_evap_100,
                 percent_change_80 = evap_80/(Eu_pre_80 + Ea_pre_wo_canopy_80),
                 Eu_post_80 = Eu_pre_80 * percent_change_80,
-                deltaEu_80 = Eu_post_80 - Eu_pre_80,
-                # Other (currently unneeded) variables
-                Ea_post_80 = Ea_pre_wo_canopy_80 * percent_change_80,
-                E_post_80 = Eu_post_80 + Ea_post_80,
-                deltaEa_80 = Ea_post_80 - Ea_pre_wo_canopy_80) %>% 
+                deltaEu_80 = Eu_post_80 - Eu_pre_80) %>% 
   # 50% thinning
   dplyr::mutate(Eu_pre_50 = (1-0.5)*evap_100,
                 Ea_pre_wo_canopy_50 = 0.5*evap_100 - 0.5*can_evap_100,
                 percent_change_50 = evap_50/(Eu_pre_50 + Ea_pre_wo_canopy_50),
                 Eu_post_50 = Eu_pre_50 * percent_change_50,
-                deltaEu_50 = Eu_post_50 - Eu_pre_50,
-                # Other (currently unneeded) variables
-                Ea_post_50 = Ea_pre_wo_canopy_50 * percent_change_50,
-                E_post_50 = Eu_post_50 + Ea_post_50,
-                deltaEa_50 = Ea_post_50 - Ea_pre_wo_canopy_50) %>% 
+                deltaEu_50 = Eu_post_50 - Eu_pre_50) %>% 
   dplyr::mutate(evap_80_allocated = deltaEu_80,
                 evap_50_allocated = deltaEu_50)
 
@@ -149,7 +173,7 @@ storage_change_gw <- diff_storage_daily$GW_sto %>%
   dplyr::filter(WYD %in% c(364))
 
 
-# Calculate total storage partitioned
+# Calculate total storage partitioned (Note: these values match very well with those computed using WB_Residual)
 storage_change <- storage_change_soil %>%
   dplyr::select(wy, WYD, watershed, soilstorage_50_allocated, soilstorage_80_allocated) %>% 
   dplyr::full_join(., dplyr::select(storage_change_gw, wy, WYD, watershed,
