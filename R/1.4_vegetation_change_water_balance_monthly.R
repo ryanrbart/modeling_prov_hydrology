@@ -299,9 +299,9 @@ veg_change_water_balance$scenario <- factor(veg_change_water_balance$scenario, l
 
 
 wetness_id <- c(
-  "low" = "Dry Water Years",
-  "middle" = "Average Water Years",
-  "high" = "Wet Water Years"
+  "low" = "Dry water years",
+  "middle" = "Average water years",
+  "high" = "Wet water years"
 )
 
 shed_id <- c(
@@ -342,7 +342,7 @@ tmp$flux <- factor(tmp$flux,
 x <- ggplot(data=tmp) +
   geom_col(aes(x=month,y=value, fill = flux)) +
   facet_grid(wetness~flux, labeller = labeller(flux = label_parsed, wetness = wetness_id)) +
-  labs(x="Month", y="Change in Post-Treatment Monthly Flux (mm)") +
+  labs(x="Month", y="Change in post-treatment monthly flux, mm") +
   scale_fill_manual(values = colors_bright_4) +
   theme_bw(base_size = 11) +
   theme(axis.text.x = element_text(angle = 270, hjust=0, vjust=0.6),

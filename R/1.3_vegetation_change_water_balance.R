@@ -371,8 +371,8 @@ x <- veg_change_water_balance1 %>%
   # geom_smooth(aes(x=Precip, y=value), span=3) +
   facet_wrap(flux~.,
              labeller = labeller(flux = label_parsed)) +
-  labs(x="Annual Precipitation (mm)",
-       y="Change in Post-Treatment Annual Flux (mm)") +
+  labs(x="Annual precipitation, mm",
+       y="Change in post-treatment annual flux, mm") +
   theme_bw(base_size = 11) +
   NULL
 plot(x)
@@ -427,8 +427,8 @@ x <- ggplot() +
                     labels = c("20% Thinning", "50% Thinning")) +
   scale_color_manual(name = "Scenario", values = colors_vibrant_2,
                      labels = c("20% Thinning", "50% Thinning")) +
-  labs(x="Water Year",
-       y="Annual Flux Change per 1% Thinned (mm)") +
+  labs(x="Water year",
+       y="Annual flux change per 1% thinned, mm") +
   theme_bw(base_size = 11) +
   theme(legend.position = "bottom") +
   NULL

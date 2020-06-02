@@ -121,19 +121,6 @@ absolute_change_50 <- data_annual_stacked %>%
 # ---------------------------------------------------------------------
 # ---------------------------------------------------------------------
 
-# Standard water balance only
-# ggsave("output/manuscript_plots/plot_standard_water_balance_solo.jpg", plot=standard_water_balance, width = 8, height = 6)
-
-
-# Standard water balance with relative post-thinning changes 
-# plot_annual_water_balance_relative <- standard_water_balance / relative_change_80 / relative_change_50  + 
-  # plot_layout(guides = 'collect') +
-  # plot_annotation(title = "Annual water balance with post-thinning percent changes") &
-#   plot_layout(guides = 'collect') &
-#   theme(legend.position = 'right')
-# ggsave("output/manuscript_plots/plot_standard_water_balance_relative.jpg", plot=plot_annual_water_balance_relative, width = 8, height = 10)
-
-
 # Standard water balance with absolute post-thinning changes 
 plot_annual_water_balance_absolute <- standard_water_balance / absolute_change_80 / absolute_change_50  + 
   plot_layout(guides = 'collect') +      # This plot_layout is used when putting legend on bottom

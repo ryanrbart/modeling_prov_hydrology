@@ -79,9 +79,9 @@ a <- b*(ylim.prim[1] - ylim.sec[1])
 
 
 wetness_id <- c(
-  "low" = "Dry Water Years",
-  "middle" = "Average Water Years",
-  "high" = "Wet Water Years"
+  "low" = "Dry water years",
+  "middle" = "Average water years",
+  "high" = "Wet water years"
 )
 
 shed_id <- c(
@@ -104,17 +104,17 @@ change_level_id <- c(
 # Plot with same axis scales
 x <- diff_flux_tmp %>% 
   ggplot(.) +
-  geom_ribbon(aes(x=WYD, ymin=0, ymax = `100`, fill="Pre-Thinning SWE")) +
-  geom_line(aes(x=WYD,y=absolute_change, color="Change in\nPost-Thinning SWE"), size=0.8) +
+  geom_ribbon(aes(x=WYD, ymin=0, ymax = `100`, fill="Pre-thinning SWE")) +
+  geom_line(aes(x=WYD,y=absolute_change, color="Change in\npost-thinning SWE"), size=0.8) +
   geom_hline(aes(yintercept=0),color="black") +
   facet_grid(wetness~., labeller = labeller(wetness = wetness_id)) +
-  labs(x="Water Year Day", y="Snow Water Equivalent (mm)") +
+  labs(x="Water year day", y="Snow water equivalent, mm") +
   scale_fill_manual(name = "",
-                    breaks = c("Pre-Thinning SWE"),
-                    values = c("Pre-Thinning SWE" = "gray70")) +
+                    breaks = c("Pre-thinning SWE"),
+                    values = c("Pre-thinning SWE" = "gray70")) +
   scale_color_manual(name = "",
-                     breaks = c("Change in\nPost-Thinning SWE"),
-                     values = c("Change in\nPost-Thinning SWE" = "blue")) +
+                     breaks = c("Change in\npost-thinning SWE"),
+                     values = c("Change in\npost-thinning SWE" = "blue")) +
   scale_x_continuous(breaks = c(1,32,62,93,124,152,183,213,244,274,305,336),
                      minor_breaks = NULL,
                      labels = c("Oct","Nov","Dec","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep")) +
