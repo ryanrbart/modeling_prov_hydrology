@@ -37,7 +37,7 @@ x <- data_cal_q %>%
   scale_y_log10() +
   scale_color_manual(name = "",
                      values = c("black", "blue"),
-                     labels = c("Modeled\nstreamflow", "Observed\nstreamflow")) +
+                     labels = c("Observed\nstreamflow", "Modeled\nstreamflow")) +
   labs(title = "Streamflow",
        x="Year", 
        y="Streamflow, mm/day") +
@@ -53,7 +53,7 @@ y <- data_cal_swe %>%
   #scale_y_log10() +
   scale_color_manual(name = "",
                      values = c("black", "blue", "red"),
-                     labels = c("Observed\nSWE (patch)", "Modeled\nSWE (patch)", "Modeled\nSWE (basin)")) +
+                     labels = c("Observed\nSWE (patch)", "Modeled\nSWE (patch)", "Modeled\nSWE (watershed)")) +
   labs(title = "Snow Water Equivalent (SWE)",
        x="Year", 
        y="Snow water equivalent, mm") +
