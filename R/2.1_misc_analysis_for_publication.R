@@ -178,7 +178,8 @@ table_4_part1 <- data_annual_stacked %>%
   group_by(flux) %>% 
   dplyr::summarise(
     mean = round(mean(`100`),0),
-    plus_minus = round(sd(`100`)*1.96,0))
+    plus_minus = round(1.96*(sd(`100`)/(length(`100`)^0.5)),0),
+    co_var = round(sd(`100`)/mean(`100`),2))
 
 print(table_4_part1)
 
@@ -188,7 +189,8 @@ table_4_part2 <- data_annual_stacked %>%
   group_by(flux) %>% 
   dplyr::summarise(
     mean = round(mean(absolute_50),0),
-    plus_minus = round(sd(absolute_50)*1.96,0))
+    plus_minus = round(1.96*(sd(absolute_50)/(length(absolute_50)^0.5)),0),
+    co_var = round(sd(absolute_50)/mean(absolute_50),2))
 
 print(table_4_part2)
 
@@ -199,7 +201,8 @@ veg_change_water_balance_mean <- function(veg_change_water_balance_input, scenar
     group_by(flux) %>% 
     dplyr::summarise(
       mean = round(mean(value),0),
-      plus_minus = round(sd(value)*1.96,0))
+      plus_minus = round(1.96*(sd(value)/(length(value)^0.5)),0),
+      co_var = round(sd(value)/mean(value),2))
   print(conserved_mean_by_flux)
   return(conserved_mean_by_flux)
 }
