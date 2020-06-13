@@ -106,6 +106,27 @@ print(mean_watershed)
 # Note: mean +- sd * 1.96
 
 
+# Generate average change values for standard water balance
+mean_80 <- data_annual_stacked %>% 
+  group_by(flux) %>% 
+  dplyr::summarise(
+    mean = mean(absolute_80),
+    sd = sd(absolute_80),
+    plus_minus = sd*1.96,
+    co_var = sd(absolute_80)/mean(absolute_80)
+  )
+print(mean_80)
+
+mean_50 <- data_annual_stacked %>% 
+  group_by(flux) %>% 
+  dplyr::summarise(
+    mean = mean(absolute_50),
+    sd = sd(absolute_50),
+    plus_minus = sd*1.96,
+    co_var = sd(absolute_50)/mean(absolute_50)
+  )
+print(mean_50)
+
 
 
 # ---------------------------------------------------------------------
@@ -144,5 +165,51 @@ veg_change_water_balance_mean(veg_change_water_balance_input = veg_change_water_
 veg_change_water_balance_mean(veg_change_water_balance_input = veg_change_water_balance, scenario_input = 80, balance_component_input = "allocated")
 # 50% thinning scenario
 veg_change_water_balance_mean(veg_change_water_balance_input = veg_change_water_balance, scenario_input = 50, balance_component_input = "allocated")
+
+
+
+# ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
+# Generate results for table 4 for publication
+
+table_4_part1 <- data_annual_stacked %>% 
+  # group_by(watershed, flux) %>% 
+  group_by(flux) %>% 
+  dplyr::summarise(
+    mean = round(mean(`100`),0),
+    plus_minus = round(sd(`100`)*1.96,0))
+
+print(table_4_part1)
+
+
+table_4_part2 <- data_annual_stacked %>% 
+  # group_by(watershed, flux) %>% 
+  group_by(flux) %>% 
+  dplyr::summarise(
+    mean = round(mean(absolute_50),0),
+    plus_minus = round(sd(absolute_50)*1.96,0))
+
+print(table_4_part2)
+
+veg_change_water_balance_mean <- function(veg_change_water_balance_input, scenario_input, balance_component_input){
+  conserved_mean_by_flux <- veg_change_water_balance_input %>% 
+    dplyr::filter(scenario == scenario_input, balance_component==balance_component_input) %>% 
+    # dplyr::group_by(watershed, flux) %>% 
+    group_by(flux) %>% 
+    dplyr::summarise(
+      mean = round(mean(value),0),
+      plus_minus = round(sd(value)*1.96,0))
+  print(conserved_mean_by_flux)
+  return(conserved_mean_by_flux)
+}
+
+table_4_part3 <- veg_change_water_balance_mean(veg_change_water_balance_input = veg_change_water_balance, scenario_input = 50, balance_component_input = "allocated")
+
+# Export table components
+write_csv(table_4_part1, "output/manuscript_plots/table_4_part_1.csv")
+write_csv(table_4_part2, "output/manuscript_plots/table_4_part_2.csv")
+write_csv(table_4_part3, "output/manuscript_plots/table_4_part_3.csv")
+
 
 
