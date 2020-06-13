@@ -62,7 +62,7 @@ standard_water_balance <- data_annual_stacked %>%
                                expression('Streamflow ('*Q[w]*')'),
                                expression('Evaporation ('*E[w]*')'), 
                                expression('Transpiration ('*T[w]*')'))) +
-  labs(title = "Annual Water Balance", x="Water year", y="Annual flux, mm") +
+  labs(title = "Annual water balance", x="Water year", y="Annual flux, mm") +
   theme_bw(base_size = 11) +
   theme(#axis.text.x = element_text(angle = 270, hjust=0, vjust=0.6),
         legend.text.align = 0,
@@ -82,7 +82,7 @@ absolute_change_80 <- data_annual_stacked %>%
                                expression('Streamflow ('*Q[w]*')'),
                                expression('Evaporation ('*E[w]*')'), 
                                expression('Transpiration ('*T[w]*')'))) +
-  labs(title = "20% Thinning Scenario", x="Water year", y="Change in post-treatment\nannual flux, mm") +
+  labs(title = "20% Thinning scenario", x="Water year", y="Change in post-treatment\nannual flux, mm") +
   theme_bw(base_size = 11) +
   theme(#axis.text.x = element_text(angle = 270, hjust=0, vjust=0.6),
         legend.text.align = 0,
@@ -105,7 +105,7 @@ absolute_change_50 <- data_annual_stacked %>%
                                expression('Streamflow ('*Q[w]*')'),
                                expression('Evaporation ('*E[w]*')'), 
                                expression('Transpiration ('*T[w]*')'))) +
-  labs(title = "50% Thinning Scenario", x="Water year", y="Change in post-treatment\nannual flux, mm") +
+  labs(title = "50% Thinning scenario", x="Water year", y="Change in post-treatment\nannual flux, mm") +
   theme_bw(base_size = 11) +
   theme(axis.text.x = element_text(angle = 270, hjust=0, vjust=0.6),
         legend.text.align = 0,
@@ -122,11 +122,22 @@ absolute_change_50 <- data_annual_stacked %>%
 # ---------------------------------------------------------------------
 
 # Standard water balance with absolute post-thinning changes 
-plot_annual_water_balance_absolute <- standard_water_balance / absolute_change_80 / absolute_change_50  + 
-  plot_layout(guides = 'collect') +      # This plot_layout is used when putting legend on bottom
-  plot_annotation(tag_levels = 'a') &
-  #plot_layout(guides = 'collect') &     # This alternative plot_layout is used when putting legend on right 
-  theme(legend.position = 'bottom')
+# plot_annual_water_balance_absolute <- standard_water_balance / absolute_change_80 / absolute_change_50  + 
+#   plot_layout(guides = 'collect') +      # This plot_layout is used when putting legend on bottom
+#   plot_annotation(tag_levels = 'a') &
+#   #plot_layout(guides = 'collect') &     # This alternative plot_layout is used when putting legend on right 
+#   theme(legend.position = 'bottom')
+
+
+# Temporary patchwork fix (https://github.com/thomasp85/patchwork/issues/170)
+# Standard water balance with absolute post-thinning changes 
+standard_water_balance_guide <- standard_water_balance + guides(fill = "none")
+absolute_change_80_guide <- absolute_change_80 + guides(fill = "none")
+
+plot_annual_water_balance_absolute <- standard_water_balance_guide / absolute_change_80_guide / absolute_change_50  + 
+  plot_layout(guides = "collect") &  plot_annotation(tag_levels = 'a') & theme(legend.position = "bottom")
+
+
 ggsave("output/manuscript_plots/plot_standard_water_balance_absolute.jpg", plot=plot_annual_water_balance_absolute, width = 8, height = 9)
 
 write_csv(data_annual_stacked, path="output/data_annual_stacked.csv")
