@@ -260,7 +260,7 @@ veg_change_water_balance$scenario <- factor(veg_change_water_balance$scenario, l
 # ---------------------------------------------------------------------
 # ---------------------------------------------------------------------
 # ---------------------------------------------------------------------
-# Make vegetation change water balance figure (Fig 3)
+# Make vegetation change water balance figure (Fig 4)
 
 scenario_id <- c(
   "80" = "20% Thinning Scenario",
@@ -311,12 +311,12 @@ x <- ggplot() +
                     # Bright: Purple, red, cyan, blue, green, yellow                    
                     values = colors_bright_6,
                     
-                    labels = c(expression('Affected Evaporation ('*E[a]*')'),
-                               expression('Affected Transpiration ('*T[a]*')'),
-                               expression('Change in Storage (d'*S[w]*')'), 
-                               expression('Streamflow ('*Q[w]*')'),
-                               expression('Unaffected Evaporation ('*E[u]*')'), 
-                               expression('Unaffected Transpiration ('*T[u]*')'))) +
+                    labels = c(expression('Affected Evaporation (-'*Delta*E[a]*')'),
+                               expression('Affected Transpiration (-'*Delta*T[a]*')'),
+                               expression('Change in Storage ('*Delta*'(d'*S[w]*'))'), 
+                               expression('Streamflow ('*Delta*Q[w]*')'),
+                               expression('Unaffected Evaporation ('*Delta*E[u]*')'), 
+                               expression('Unaffected Transpiration ('*Delta*T[u]*')'))) +
   scale_x_continuous(breaks = seq(2004,2014), labels = seq(2004,2014)) +
   labs(x="Water year", y="Change in post-treatment annual flux, mm") +
   theme_bw(base_size = 11) +
@@ -334,7 +334,7 @@ ggsave("output/manuscript_plots/plot_veg_change_water_balance.jpg", plot=x, widt
 # ---------------------------------------------------------------------
 # ---------------------------------------------------------------------
 # ---------------------------------------------------------------------
-# Compare partitioning relative to precipitation (Fig 4)
+# Compare partitioning relative to precipitation (Fig 5)
 
 flux_id <- c(
   "storage" = "Change in Storage",
@@ -385,7 +385,7 @@ ggsave("output/manuscript_plots/plot_precip_vs_flux_change_50.jpg", plot=x, widt
 # ---------------------------------------------------------------------
 # ---------------------------------------------------------------------
 # ---------------------------------------------------------------------
-# Relative benefit of doing 50% thinning vs 20% thinning (Bang for your buck) (Fig. 5)
+# Relative benefit of doing 50% thinning vs 20% thinning (Bang for your buck) (Fig. 6)
 
 
 veg_change_water_balance1 <- veg_change_water_balance

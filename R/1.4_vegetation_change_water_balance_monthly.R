@@ -1,5 +1,5 @@
 # Figures for monthly vegetation reduction water balance
-# Includes code for manuscript Figure 6
+# Includes code for manuscript Figure 7
 
 
 source("R/0_utilities.R")
@@ -293,7 +293,7 @@ veg_change_water_balance$scenario <- factor(veg_change_water_balance$scenario, l
 # ---------------------------------------------------------------------
 # ---------------------------------------------------------------------
 # ---------------------------------------------------------------------
-# Generate Figure 6
+# Generate Figure 7
 # Monthly water balance: Compare dry years (2014 2007 2013), normal year (2004 2012 2008 2009), and wet year (2010 2005 2006 2011)
 # For P303 50% and 20% scenarios
 

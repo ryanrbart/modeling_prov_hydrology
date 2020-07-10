@@ -1,5 +1,5 @@
 # Snow water balance figure
-# Includes code for manuscript figure 7
+# Includes code for manuscript figure 8
 
 
 source("R/0_utilities.R")
@@ -75,7 +75,7 @@ a <- b*(ylim.prim[1] - ylim.sec[1])
 # ---------------------------------------------------------------------
 # ---------------------------------------------------------------------
 # ---------------------------------------------------------------------
-# Generate figure 7
+# Generate figure 8
 
 
 wetness_id <- c(

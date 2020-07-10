@@ -1,5 +1,6 @@
 # Calibration figures
 
+# Includes code for manuscript figure 2
 
 source("R/0_utilities.R")
 
@@ -27,7 +28,7 @@ data_cal_swe$swe_names <- factor(data_cal_swe$swe_names, levels=c("swe_obs_patch
 # ---------------------------------------------------------------------
 # ---------------------------------------------------------------------
 # ---------------------------------------------------------------------
-# Generate calibration figures
+# Generate calibration figures (Figure 2)
 
 
 x <- data_cal_q %>% 
