@@ -1,5 +1,5 @@
 # Figures for annual vegetation change water balance
-# Includes code for manuscript figures 3, 4 & 5
+# Includes code for manuscript figures 4, 5, & 6
 
 
 

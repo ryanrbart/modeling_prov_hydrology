@@ -98,7 +98,7 @@ storage_var <- c("Tmax","Tmin","Snowpack","LitterSto","CanopySto",
 # Color schemes
 # source: https://personal.sron.nl/~pault/
 # Bright: Purple, red, cyan, blue, green, yellow                    
-colors_bright_6 = c("#AA3377","#EE6677","#66CCEE","#4477AA","#228833","#CCBB44")  # This is clearest, though not necessarily most attractive, according to Ana and Martha
+colors_bright_6 = c("#AA3377","#EE6677","#66CCEE","#4477AA","#228833","#CCBB44")
 
 # Bright: Cyan, blue, green, yellow                    
 colors_bright_4 = c("#66CCEE","#4477AA","#228833","#CCBB44") 
