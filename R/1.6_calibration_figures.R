@@ -54,7 +54,7 @@ y <- data_cal_swe %>%
   #scale_y_log10() +
   scale_color_manual(name = "",
                      values = c("black", "blue", "red"),
-                     labels = c("Observed\nSWE (patch)", "Modeled\nSWE (patch)", "Modeled\nSWE (watershed)")) +
+                     labels = c("Observed\nSWE (pillow)", "Modeled\nSWE (patch)", "Modeled\nSWE (watershed)")) +
   labs(title = "Snow Water Equivalent (SWE)",
        x="Year", 
        y="Snow water equivalent, mm") +

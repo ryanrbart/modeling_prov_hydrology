@@ -88,7 +88,7 @@ flux_var <- c("Precip","Rainfall","Snowfall","SnowSubl","del_snowpack",
               "Streamflow","Baseflow","ReturnFlow","GW_out",
               "RZ_drain","Unsat_drain","CapRise","R_Tfall",
               "S_Tfall","Photosyn","WB_Residual","Evap_neg",
-              "Transp_neg", "canopy_evap", "litter_evap")
+              "Transp_neg", "snowmelt", "canopy_evap", "litter_evap")
 
 storage_var <- c("Tmax","Tmin","Snowpack","LitterSto","CanopySto",
                  "RZ_sto","Unsat_Sto","SatDef_dep","SatDef_Vol","GW_sto",

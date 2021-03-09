@@ -1,5 +1,4 @@
-# Import model output and process
-# Data originally in SigmaPlot
+# Import RHESSys model output and process
 
 
 source("R/0_utilities.R")
@@ -75,7 +74,8 @@ data_daily <- data_daily %>%
                 Evap_neg = -1*Evap,
                 Transp_neg = -1*Transp,
                 Sat_sto = (5000 - SatDef_dep)*0.5,  # SatDef_Vol (SatDef_dep*0.5) is volume of space that is not saturated. Should be equal or greater than unsat + rz
-                Total_sto = Sat_sto + RZ_sto + Unsat_Sto)
+                Total_sto = Sat_sto + RZ_sto + Unsat_Sto,
+                snowmelt = del_snowpack - SnowSubl)
 
 # Subsurface storage by depth
 # data_daily %>% 
@@ -121,6 +121,7 @@ data_annual <- data_daily %>%
                    WB_Residual = sum(WB_Residual),
                    Evap_neg = sum(Evap_neg),
                    Transp_neg = sum(Transp_neg),
+                   snowmelt = sum(snowmelt),
                    canopy_evap = sum(canopy_evap, na.rm=TRUE),
                    litter_evap = sum(litter_evap, na.rm=TRUE),
                    
@@ -166,6 +167,7 @@ data_seasonal <- data_daily %>%
                    WB_Residual = sum(WB_Residual),
                    Evap_neg = sum(Evap_neg),
                    Transp_neg = sum(Transp_neg),
+                   snowmelt = sum(snowmelt),
                    canopy_evap = sum(canopy_evap, na.rm=TRUE),
                    litter_evap = sum(litter_evap, na.rm=TRUE),
                    
@@ -318,16 +320,16 @@ diff_storage_annual <- setNames(diff_storage_annual, storage_var)
 # ---------------------------------------------------------------------
 # Export
 
-write_csv(data_daily, path="output/data_daily.csv")
-write_csv(data_seasonal, path="output/data_seasonal.csv")
-write_csv(data_annual, path="output/data_annual.csv")
+write_csv(data_daily, file="output/data_daily.csv")
+write_csv(data_seasonal, file="output/data_seasonal.csv")
+write_csv(data_annual, file="output/data_annual.csv")
 
 
-write_rds(diff_flux_daily, path="output/diff_flux_daily.rds")
-write_rds(diff_flux_seasonal, path="output/diff_flux_seasonal.rds")
-write_rds(diff_flux_annual, path="output/diff_flux_annual.rds")
+write_rds(diff_flux_daily, file="output/diff_flux_daily.rds")
+write_rds(diff_flux_seasonal, file="output/diff_flux_seasonal.rds")
+write_rds(diff_flux_annual, file="output/diff_flux_annual.rds")
 
-write_rds(diff_storage_daily, path="output/diff_storage_daily.rds")
-write_rds(diff_storage_seasonal, path="output/diff_storage_seasonal.rds")
-write_rds(diff_storage_annual, path="output/diff_storage_annual.rds")
+write_rds(diff_storage_daily, file="output/diff_storage_daily.rds")
+write_rds(diff_storage_seasonal, file="output/diff_storage_seasonal.rds")
+write_rds(diff_storage_annual, file="output/diff_storage_annual.rds")
 

@@ -1,5 +1,5 @@
 # Figures for monthly vegetation reduction water balance
-# Includes code for manuscript Figure 7
+# Includes code for manuscript Figure 7 + Graphical Abstract
 
 
 source("R/0_utilities.R")
@@ -62,7 +62,243 @@ diff_flux_monthly_stacked <- diff_flux_daily_stacked %>%
                    `100` = sum(`100`, na.rm = TRUE))
   
 
-  
+# ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
+# Quantify water made available from thinning aka left half of Equation 4
+
+# Calculate evaporation removed
+evap_rmv <- diff_flux_monthly_stacked %>% 
+  dplyr::filter(flux %in% c("Evap","canopy_evap")) %>% 
+  pivot_wider(names_from = "flux", values_from = c(`50`, `80`, `100`)) %>% 
+  dplyr::rename("evap_50" = `50_Evap`, "evap_80" = `80_Evap`, "evap_100" = `100_Evap`,
+                "can_evap_50" = `50_canopy_evap`, "can_evap_80" = `80_canopy_evap`, "can_evap_100" = `100_canopy_evap`) %>% 
+  # Calculate evaporation made available from canopy evaporation
+  dplyr::mutate(Ec_80_rmv_pre = can_evap_100*0.2,
+                Ec_50_rmv_pre = can_evap_100*0.5,
+                delta_Ec_80_rmv = 0 - Ec_80_rmv_pre,
+                delta_Ec_50_rmv = 0 - Ec_50_rmv_pre) %>% 
+  # Calculate evaporation made available from litter, soil, and snow evaporation: 20% thinning
+  dplyr::mutate(Enc_80_rmv_pre = (evap_100-can_evap_100) * (0.2),
+                Enc_80_rmv_post = Enc_80_rmv_pre * (evap_80/(evap_100 - Ec_80_rmv_pre)),
+                delta_Enc_80_rmv = Enc_80_rmv_post - Enc_80_rmv_pre) %>% 
+  # Calculate evaporation made available from litter, soil, and snow evaporation: 50% thinning
+  dplyr::mutate(Enc_50_rmv_pre = (evap_100-can_evap_100) * (0.5),
+                Enc_50_rmv_post = Enc_50_rmv_pre * (evap_50/(evap_100 - Ec_50_rmv_pre)),
+                delta_Enc_50_rmv = Enc_50_rmv_post - Enc_50_rmv_pre) %>% 
+  dplyr::mutate(delta_evap_80_rmv = delta_Ec_80_rmv + delta_Enc_80_rmv,
+                delta_evap_50_rmv = delta_Ec_50_rmv + delta_Enc_50_rmv)   
+
+# Calculate transpiration removed
+transp_rmv <- diff_flux_monthly_stacked %>% 
+  dplyr::filter(flux == "Transp") %>% 
+  dplyr::mutate(delta_transp_80_rmv = 0 - `100`*0.2,
+                delta_transp_50_rmv = 0 - `100`*0.5)
+
+
+# ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
+# Quantify how water is repartitioned after thinning (right half of equation 4)
+
+# Calculate evaporation remain
+evap_rmn <- diff_flux_monthly_stacked %>% 
+  dplyr::filter(flux %in% c("Evap","canopy_evap")) %>% 
+  pivot_wider(names_from = "flux", values_from = c(`50`, `80`, `100`)) %>% 
+  dplyr::rename("evap_50" = `50_Evap`, "evap_80" = `80_Evap`, "evap_100" = `100_Evap`,
+                "can_evap_50" = `50_canopy_evap`, "can_evap_80" = `80_canopy_evap`, "can_evap_100" = `100_canopy_evap`) %>% 
+  # Calculate evaporation made available from litter, soil, and snow evaporation: 20% thinning
+  dplyr::mutate(Ec_80_rmv_pre = can_evap_100*0.2,
+                E_80_rmn_pre = (evap_100) * (1-0.2),
+                E_80_rmn_post = E_80_rmn_pre * (evap_80/(evap_100 - Ec_80_rmv_pre)),
+                delta_evap_80_rmn = E_80_rmn_post - E_80_rmn_pre) %>% 
+  # Calculate evaporation made available from litter, soil, and snow evaporation: 50% thinning
+  dplyr::mutate(Ec_50_rmv_pre = can_evap_100*0.5,
+                E_50_rmn_pre = (evap_100) * (1-0.5),
+                E_50_rmn_post = E_50_rmn_pre * (evap_50/(evap_100 - Ec_50_rmv_pre)),
+                delta_evap_50_rmn = E_50_rmn_post - E_50_rmn_pre)
+
+
+# Calculate transpiration remain
+transp_rmn <- diff_flux_monthly_stacked %>% 
+  dplyr::filter(flux == "Transp") %>% 
+  dplyr::mutate(delta_transp_80_rmn = (`80`-0) - (`100`* (1-0.2)),
+                delta_transp_50_rmn = (`50`-0) - (`100`* (1-0.5)))
+
+
+# Calculate streamflow remain
+streamflow_w <- diff_flux_monthly_stacked %>% 
+  dplyr::filter(flux == "Streamflow") %>% 
+  dplyr::mutate(delta_streamflow_80_w = `80` - `100`,
+                delta_streamflow_50_w = `50` - `100`)
+
+
+# Calculate soil storage remain (part 1 of storage term)
+storage_w_soil <- diff_storage_daily_stacked %>% 
+  dplyr::mutate(yd = wyd_to_yd(wyd = WYD, y=2005),
+                month = yd_to_month(yd = yd, y=2005)) %>%     # using non-leap year for all years since underlying data ignores leap year
+  dplyr::filter(flux == "Total_sto") %>% 
+  dplyr::group_by(flux, watershed, wy, month) %>% 
+  dplyr::mutate(month_rank = round(percent_rank(yd), 8)) %>% 
+  dplyr::filter(month_rank %in% c(0,1)) %>%                  # Compare storage on the first and last data of month (using rank in the month to determine first and last day)
+  dplyr::group_by(watershed) %>% 
+  dplyr::mutate(lag_50 = lag(`50`),
+                lag_80 = lag(`80`),
+                lag_100 = lag(`100`),
+                soilstorage_50_w = (`50`-lag_50) - (`100`-lag_100),
+                soilstorage_80_w = (`80`-lag_80) - (`100`-lag_100)) %>% 
+  dplyr::filter(month_rank %in% c(1))
+
+
+# Calculate gw storage remain  (part 2 of storage term)
+storage_w_gw <- diff_storage_daily_stacked %>% 
+  dplyr::mutate(yd = wyd_to_yd(wyd = WYD, y=2005),
+                month = yd_to_month(yd = yd, y=2005)) %>%     # using non-leap year for all years since underlying data ignores leap year
+  dplyr::filter(flux == "GW_sto") %>% 
+  dplyr::group_by(flux, watershed, wy, month) %>% 
+  dplyr::mutate(month_rank = round(percent_rank(yd), 8)) %>% 
+  dplyr::filter(month_rank %in% c(0,1)) %>%                  # Compare storage on the first and last data of month (using rank in the month to determine first and last day)
+  dplyr::group_by(watershed) %>% 
+  dplyr::mutate(lag_50 = lag(`50`),
+                lag_80 = lag(`80`),
+                lag_100 = lag(`100`),
+                gwstorage_50_w = (`50`-lag_50) - (`100`-lag_100),
+                gwstorage_80_w = (`80`-lag_80) - (`100`-lag_100)) %>% 
+  dplyr::filter(month_rank %in% c(1))
+
+
+# Calculate total storage remain
+storage_w <- storage_w_soil %>%
+  dplyr::select(wy, month, watershed, soilstorage_50_w, soilstorage_80_w) %>% 
+  dplyr::full_join(., dplyr::select(storage_w_gw, wy, month, watershed,
+                                    gwstorage_50_w, gwstorage_80_w),
+                   by = c("wy", "month", "watershed")) %>% 
+  dplyr::mutate(delta_storage_50_w = gwstorage_50_w + soilstorage_50_w,
+                delta_storage_80_w = gwstorage_80_w + soilstorage_80_w)
+
+
+
+# ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
+# Bring all components of vegetation change water balance together 
+
+
+# Water made available
+flux_rmv <- dplyr::full_join(dplyr::select(ungroup(evap_rmv), c(wy, watershed, month, delta_evap_80_rmv, delta_evap_50_rmv)), 
+                             dplyr::select(ungroup(transp_rmv), c(wy, watershed, month, delta_transp_80_rmv, delta_transp_50_rmv)), 
+                             by=c("wy", "watershed", "month")) %>% 
+  dplyr::mutate(total_80_rmv = delta_evap_80_rmv + delta_transp_80_rmv,
+                total_50_rmv = delta_evap_50_rmv + delta_transp_50_rmv)
+
+flux_rmv <- flux_rmv %>% 
+  dplyr::left_join(., dplyr::distinct(dplyr::select(data_annual, wy, watershed, Precip)), by=c("wy", "watershed"))
+
+flux_leftside_long <- flux_rmv %>% 
+  dplyr::select(-c(total_80_rmv, total_50_rmv)) %>% 
+  tidyr::pivot_longer(names_to = "flux_level", values_to = "value", -c(wy,watershed, month, Precip)) %>% 
+  tidyr::separate(flux_level, into=c("delta", "flux", "scenario", "balance_component")) %>% 
+  dplyr::select(-c(delta)) %>% 
+  mutate(balance_component = if_else(balance_component == "rmv", "leftside", NULL))
+
+
+# ----
+# Allocated water
+flux_allocated <- dplyr::full_join(dplyr::select(ungroup(evap_rmn), wy, month, watershed, delta_evap_80_rmn, delta_evap_50_rmn), 
+                                   dplyr::select(ungroup(transp_rmn), wy, month, watershed, delta_transp_80_rmn, delta_transp_50_rmn), 
+                                   by=c("wy", "watershed", "month"))
+
+flux_allocated <- dplyr::full_join(flux_allocated, 
+                                   dplyr::select(ungroup(streamflow_w), wy, month, watershed, delta_streamflow_80_w, delta_streamflow_50_w), 
+                                   by=c("wy", "watershed", "month"))
+
+flux_allocated <- dplyr::full_join(flux_allocated,
+                                   dplyr::select(ungroup(storage_w), wy, month, watershed, delta_storage_80_w, delta_storage_50_w),
+                                   by=c("wy", "watershed", "month"))
+
+# Create percentages
+flux_allocated <- flux_allocated %>% 
+  dplyr::mutate(delta_evap_50_percent = delta_evap_50_rmn/(delta_evap_50_rmn + delta_transp_50_rmn +
+                                                             delta_streamflow_50_w + delta_storage_50_w),
+                delta_transp_50_percent = delta_transp_50_rmn/(delta_evap_50_rmn + delta_transp_50_rmn +
+                                                                 delta_streamflow_50_w + delta_storage_50_w),
+                delta_streamflow_50_percent = delta_streamflow_50_w/(delta_evap_50_rmn + delta_transp_50_rmn +
+                                                                       delta_streamflow_50_w + delta_storage_50_w),
+                delta_storage_50_percent = delta_storage_50_w/(delta_evap_50_rmn + delta_transp_50_rmn +
+                                                                 delta_streamflow_50_w + delta_storage_50_w),
+                delta_evap_80_percent = delta_evap_80_rmn/(delta_evap_80_rmn + delta_transp_80_rmn +
+                                                             delta_streamflow_80_w + delta_storage_80_w),
+                delta_transp_80_percent = delta_transp_80_rmn/(delta_evap_80_rmn + delta_transp_80_rmn +
+                                                                 delta_streamflow_80_w + delta_storage_80_w),
+                delta_streamflow_80_percent = delta_streamflow_80_w/(delta_evap_80_rmn + delta_transp_80_rmn +
+                                                                       delta_streamflow_80_w + delta_storage_80_w),
+                delta_storage_80_percent = delta_storage_80_w/(delta_evap_80_rmn + delta_transp_80_rmn +
+                                                                 delta_streamflow_80_w + delta_storage_80_w))
+
+
+# Add precipitation to results
+flux_allocated <- flux_allocated %>% 
+  dplyr::left_join(., dplyr::distinct(dplyr::select(data_annual, wy, watershed, Precip)), by=c("wy", "watershed"))
+
+# Separate the flux from the scenario
+flux_rightside_long <- tidyr::pivot_longer(flux_allocated, names_to = "flux_level", values_to = "value", -c(wy,watershed, month, Precip)) %>% 
+  tidyr::separate(flux_level, into=c("delta", "flux", "scenario", "balance_component")) %>% 
+  dplyr::select(-c(delta)) %>% 
+  mutate(balance_component = case_when(balance_component == "rmn" ~ "rightside",
+                                       balance_component == "w" ~ "rightside",
+                                       balance_component == "percent" ~ "percent"))
+
+
+# ----
+# Combine conserved and allocated water
+veg_change_water_balance <- bind_rows(flux_leftside_long, flux_rightside_long)
+veg_change_water_balance$flux <- factor(veg_change_water_balance$flux, levels = c("storage", "streamflow", "evap", "transp"))
+veg_change_water_balance$scenario <- factor(veg_change_water_balance$scenario, levels = c("80", "50"))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # ---------------------------------------------------------------------
 # ---------------------------------------------------------------------
 # ---------------------------------------------------------------------
@@ -311,8 +547,8 @@ shed_id <- c(
 )
 
 scenario_id <- c(
-  "80" = "20% Thinning Scenario",
-  "50" = "50% Thinning Scenario"
+  "80" = "20% Biomass reduction",
+  "50" = "50% Biomass reduction"
 )
 
 
@@ -323,7 +559,7 @@ tmp <- veg_change_water_balance %>%
                                     wy %in% c(2004, 2012, 2008, 2009) ~ "middle",
                                     wy %in% c(2010, 2005, 2006, 2011) ~ "high")) %>% 
   dplyr::filter(flux %in% c("storage", "streamflow", "evap", "transp"),
-                balance_component=="allocated",
+                balance_component=="rightside",
                 watershed=="p303",
                 scenario == 50) %>% 
   dplyr::group_by(wetness, flux, month, scenario, balance_component) %>% 
@@ -333,28 +569,71 @@ tmp$month <- factor(tmp$month, levels = c(10,11,12,1,2,3,4,5,6,7,8,9),
                     labels = c("Oct","Nov","Dec","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep"))
 tmp$flux <- factor(tmp$flux,
                    labels = c(
+                     # "storage" = expression(atop(x="Change in Storage/",
+                     #                 y =  'GW Loss ('*Delta*'(d'*S[w]*'))')), # Remove delta
                      "storage" = expression('Change in Storage (d'*S[w]*')'),
                      "streamflow" = expression('Streamflow ('*Q[w]*')'),
-                     "evap" = expression('Evaporation ('*E[u]*')'),
-                     "transp" = expression('Transpiration ('*T[u]*')')
+                     "evap" = expression('Evaporation ('*E[rmn]*')'),
+                     "transp" = expression('Transpiration ('*T[rmn]*')')
                    ))
 
 x <- ggplot(data=tmp) +
   geom_col(aes(x=month,y=value, fill = flux)) +
-  facet_grid(wetness~flux, labeller = labeller(flux = label_parsed, wetness = wetness_id)) +
-  labs(x="Month", y="Change in post-treatment monthly flux, mm") +
+  facet_grid(flux~wetness, labeller = labeller(flux = label_parsed, wetness = wetness_id)) +
+  labs(x="Month", y="Change in post-biomass-reduction monthly flux, mm") +
   scale_fill_manual(values = colors_bright_4) +
   theme_bw(base_size = 11) +
   theme(axis.text.x = element_text(angle = 270, hjust=0, vjust=0.6),
         legend.position = "none") +
   NULL
-#plot(x)
+plot(x)
 
-ggsave("output/manuscript_plots/plot_veg_change_water_balance_monthly.jpg", plot=x, width = 7.5, height = 5)
-
-
-
+ggsave("output/manuscript_plots/plot_veg_change_water_balance_monthly.jpg", plot=x, width = 7.5, height = 7)
+ggsave("output/manuscript_plots/plot_veg_change_water_balance_monthly.pdf", plot=x, width = 7.5, height = 7)
 
 
+# ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
+# Average monthly values
+
+tmp %>% 
+  dplyr::group_by(wetness, flux) %>% 
+  summarise(value = mean(value)*12)
+
+
+# For to compute baseline streamflow for comparison with change value
+tmp2 <- diff_flux_monthly_stacked %>% 
+  dplyr::mutate(wetness = case_when(wy %in% c(2014, 2007, 2013) ~ "low",
+                                    wy %in% c(2004, 2012, 2008, 2009) ~ "middle",
+                                    wy %in% c(2010, 2005, 2006, 2011) ~ "high")) %>% 
+  dplyr::filter(flux %in% c("Streamflow")) %>% 
+  dplyr::group_by(wetness, month) %>% 
+  dplyr::summarise(`100` = mean(`100`, na.rm = TRUE))
+tmp2$wetness <- factor(tmp2$wetness, levels = c("low", "middle", "high"))
+
+View(tmp2)
+
+
+# ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
+# Graphical Abstract
+
+x <- tmp %>% 
+  dplyr::filter(wetness == "high") %>% 
+  ggplot(data=.) +
+  geom_col(aes(x=month,y=value, fill = flux)) +
+  facet_wrap(flux~., labeller = labeller(flux = label_parsed)) +
+  #facet_grid(flux~wetness, labeller = labeller(flux = label_parsed, wetness = wetness_id)) +
+  labs(x="Month", y="Change in post-biomass-reduction monthly flux, mm") +
+  scale_fill_manual(values = colors_bright_4) +
+  theme_bw(base_size = 18) +
+  theme(axis.text.x = element_text(angle = 270, hjust=0, vjust=0.6),
+        legend.position = "none") +
+  NULL
+plot(x)
+
+ggsave("output/manuscript_plots/plot_veg_balance_monthly_graphical.pdf", plot=x, width = 7.5, height = 7)
 
 

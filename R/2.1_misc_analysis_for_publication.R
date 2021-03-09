@@ -152,20 +152,20 @@ veg_change_water_balance_mean <- function(veg_change_water_balance_input, scenar
 
 
 # -----
-# Water made available (conserved)
+# Water made available
 
 # 20% thinning scenario
-veg_change_water_balance_mean(veg_change_water_balance_input = veg_change_water_balance, scenario_input = 80, balance_component_input = "conserved")
+veg_change_water_balance_mean(veg_change_water_balance_input = veg_change_water_balance, scenario_input = 80, balance_component_input = "leftside")
 # 50% thinning scenario
-veg_change_water_balance_mean(veg_change_water_balance_input = veg_change_water_balance, scenario_input = 50, balance_component_input = "conserved")
+veg_change_water_balance_mean(veg_change_water_balance_input = veg_change_water_balance, scenario_input = 50, balance_component_input = "leftside")
 
 # -----
-# Water partitioned (allocated)
+# Water partitioned
 
 # 20% thinning scenario
-veg_change_water_balance_mean(veg_change_water_balance_input = veg_change_water_balance, scenario_input = 80, balance_component_input = "allocated")
+veg_change_water_balance_mean(veg_change_water_balance_input = veg_change_water_balance, scenario_input = 80, balance_component_input = "rightside")
 # 50% thinning scenario
-veg_change_water_balance_mean(veg_change_water_balance_input = veg_change_water_balance, scenario_input = 50, balance_component_input = "allocated")
+veg_change_water_balance_mean(veg_change_water_balance_input = veg_change_water_balance, scenario_input = 50, balance_component_input = "rightside")
 
 
 
@@ -208,7 +208,7 @@ veg_change_water_balance_mean <- function(veg_change_water_balance_input, scenar
   return(conserved_mean_by_flux)
 }
 
-table_4_part3 <- veg_change_water_balance_mean(veg_change_water_balance_input = veg_change_water_balance, scenario_input = 50, balance_component_input = "allocated")
+table_4_part3 <- veg_change_water_balance_mean(veg_change_water_balance_input = veg_change_water_balance, scenario_input = 50, balance_component_input = "rightside")
 
 # Export table components
 write_csv(table_4_part1, "output/manuscript_plots/table_4_part_1.csv")

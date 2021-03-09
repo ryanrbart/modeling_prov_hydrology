@@ -53,134 +53,110 @@ diff_storage_daily_stacked <- diff_storage_daily %>%
 # ---------------------------------------------------------------------
 # ---------------------------------------------------------------------
 # ---------------------------------------------------------------------
-# Quantify water made available from thinning
+# Quantify water made available from thinning aka left half of Equation 4
 
-
-# Calculate evaporation made available from canopy evaporation
-# deltaE_a = Ecan_post_a - Ecan_pre_a (first component goes to 0 during post-treatment period)
-evap_conserved1 <- diff_flux_annual_stacked %>%
-  dplyr::filter(flux == "canopy_evap") %>%
-  dplyr::mutate(evap_80_conserved1 = `100`*0.2,                        # Note: sign in code is reversed from equations in manuscript
-                evap_50_conserved1 = `100`*0.5)                        # Note: sign in code is reversed from equations in manuscript
-
-# Calculate evaporation made available from litter, soil, and snow evaporation due to a reduction in PET  
-# See equations in publication appendix
-evap_conserved2 <- diff_flux_annual_stacked %>% 
+# Calculate evaporation removed
+evap_rmv <- diff_flux_annual_stacked %>% 
   dplyr::filter(flux %in% c("Evap","canopy_evap")) %>% 
   dplyr::select(-c("absolute_80", "absolute_50", "relative_80", "relative_50")) %>% 
   pivot_wider(names_from = "flux", values_from = c(`50`, `80`, `100`)) %>% 
   dplyr::rename("evap_50" = `50_Evap`, "evap_80" = `80_Evap`, "evap_100" = `100_Evap`,
                 "can_evap_50" = `50_canopy_evap`, "can_evap_80" = `80_canopy_evap`, "can_evap_100" = `100_canopy_evap`) %>% 
-  # 20% thinning
-  dplyr::mutate(Eu_pre_80 = (1-0.2)*evap_100,
-                Ea_pre_wo_canopy_80 = 0.2*evap_100 - 0.2*can_evap_100,
-                percent_change_80 = evap_80/(Eu_pre_80 + Ea_pre_wo_canopy_80),
-                Ea_post_80 = Ea_pre_wo_canopy_80 * percent_change_80,
-                deltaEa_80 = Ea_post_80 - Ea_pre_wo_canopy_80) %>% 
-  # 50% thinning
-  dplyr::mutate(Eu_pre_50 = (1-0.5)*evap_100,
-                Ea_pre_wo_canopy_50 = 0.5*evap_100 - 0.5*can_evap_100,
-                percent_change_50 = evap_50/(Eu_pre_50 + Ea_pre_wo_canopy_50),
-                Ea_post_50 = Ea_pre_wo_canopy_50 * percent_change_50,
-                deltaEa_50 = Ea_post_50 - Ea_pre_wo_canopy_50) %>% 
-  dplyr::mutate(evap_80_conserved2 = -deltaEa_80,                        # Note: sign in code is reversed from equations in manuscript
-                evap_50_conserved2 = -deltaEa_50)                        # Note: sign in code is reversed from equations in manuscript
+  # Calculate evaporation made available from canopy evaporation
+  dplyr::mutate(Ec_80_rmv_pre = can_evap_100*0.2,
+                Ec_50_rmv_pre = can_evap_100*0.5,
+                delta_Ec_80_rmv = 0 - Ec_80_rmv_pre,
+                delta_Ec_50_rmv = 0 - Ec_50_rmv_pre) %>% 
+  # Calculate evaporation made available from litter, soil, and snow evaporation: 20% thinning
+  dplyr::mutate(Enc_80_rmv_pre = (evap_100-can_evap_100) * (0.2),
+                Enc_80_rmv_post = Enc_80_rmv_pre * (evap_80/(evap_100 - Ec_80_rmv_pre)),
+                delta_Enc_80_rmv = Enc_80_rmv_post - Enc_80_rmv_pre) %>% 
+  # Calculate evaporation made available from litter, soil, and snow evaporation: 50% thinning
+  dplyr::mutate(Enc_50_rmv_pre = (evap_100-can_evap_100) * (0.5),
+                Enc_50_rmv_post = Enc_50_rmv_pre * (evap_50/(evap_100 - Ec_50_rmv_pre)),
+                delta_Enc_50_rmv = Enc_50_rmv_post - Enc_50_rmv_pre) %>% 
+  dplyr::mutate(delta_evap_80_rmv = delta_Ec_80_rmv + delta_Enc_80_rmv,
+                delta_evap_50_rmv = delta_Ec_50_rmv + delta_Enc_50_rmv)   
 
-# Combine both evaporation components
-evap_conserved1 <- dplyr::select(evap_conserved1, wy, watershed, evap_80_conserved1, evap_50_conserved1)
-evap_conserved2 <- dplyr::select(evap_conserved2, wy, watershed, evap_80_conserved2, evap_50_conserved2)
-evap_conserved <- evap_conserved1 %>% 
-  dplyr::full_join(., evap_conserved2, by = c("wy", "watershed")) %>% 
-  dplyr::mutate(evap_80_conserved = evap_80_conserved1 + evap_80_conserved2,
-                evap_50_conserved = evap_50_conserved1 + evap_50_conserved2)
-
-
-# Calculate transpiration made available
-# deltaT_a = T_post_a - T_pre_a (first component goes to 0 during post-treatment period)
-transp_conserved <- diff_flux_annual_stacked %>% 
+# Calculate transpiration removed
+transp_rmv <- diff_flux_annual_stacked %>% 
   dplyr::filter(flux == "Transp") %>% 
-  dplyr::mutate(transp_80_conserved = `100`*0.2,
-                transp_50_conserved = `100`*0.5)
-
+  dplyr::select(-c("absolute_80", "absolute_50", "relative_80", "relative_50")) %>% 
+  dplyr::mutate(delta_transp_80_rmv = 0 - `100`*0.2,
+                delta_transp_50_rmv = 0 - `100`*0.5)
 
 
 # ---------------------------------------------------------------------
 # ---------------------------------------------------------------------
 # ---------------------------------------------------------------------
-# Quantify how water is repartitioned after thinning
+# Quantify how water is repartitioned after thinning (right half of equation 4)
 
-
-# Calculate evaporation partitioned
-# See equations in publication appendix
-evap_change <- diff_flux_annual_stacked %>% 
+# Calculate evaporation remain
+evap_rmn <- diff_flux_annual_stacked %>% 
   dplyr::filter(flux %in% c("Evap","canopy_evap")) %>% 
   dplyr::select(-c("absolute_80", "absolute_50", "relative_80", "relative_50")) %>% 
   pivot_wider(names_from = "flux", values_from = c(`50`, `80`, `100`)) %>% 
   dplyr::rename("evap_50" = `50_Evap`, "evap_80" = `80_Evap`, "evap_100" = `100_Evap`,
                 "can_evap_50" = `50_canopy_evap`, "can_evap_80" = `80_canopy_evap`, "can_evap_100" = `100_canopy_evap`) %>% 
-  # 20% thinning
-  dplyr::mutate(Eu_pre_80 = (1-0.2)*evap_100,
-                Ea_pre_wo_canopy_80 = 0.2*evap_100 - 0.2*can_evap_100,
-                percent_change_80 = evap_80/(Eu_pre_80 + Ea_pre_wo_canopy_80),
-                Eu_post_80 = Eu_pre_80 * percent_change_80,
-                deltaEu_80 = Eu_post_80 - Eu_pre_80) %>% 
-  # 50% thinning
-  dplyr::mutate(Eu_pre_50 = (1-0.5)*evap_100,
-                Ea_pre_wo_canopy_50 = 0.5*evap_100 - 0.5*can_evap_100,
-                percent_change_50 = evap_50/(Eu_pre_50 + Ea_pre_wo_canopy_50),
-                Eu_post_50 = Eu_pre_50 * percent_change_50,
-                deltaEu_50 = Eu_post_50 - Eu_pre_50) %>% 
-  dplyr::mutate(evap_80_allocated = deltaEu_80,
-                evap_50_allocated = deltaEu_50)
+  # Calculate evaporation made available from litter, soil, and snow evaporation: 20% thinning
+  dplyr::mutate(Ec_80_rmv_pre = can_evap_100*0.2,
+                E_80_rmn_pre = (evap_100) * (1-0.2),
+                E_80_rmn_post = E_80_rmn_pre * (evap_80/(evap_100 - Ec_80_rmv_pre)),
+                delta_evap_80_rmn = E_80_rmn_post - E_80_rmn_pre) %>% 
+  # Calculate evaporation made available from litter, soil, and snow evaporation: 50% thinning
+  dplyr::mutate(Ec_50_rmv_pre = can_evap_100*0.5,
+                E_50_rmn_pre = (evap_100) * (1-0.5),
+                E_50_rmn_post = E_50_rmn_pre * (evap_50/(evap_100 - Ec_50_rmv_pre)),
+                delta_evap_50_rmn = E_50_rmn_post - E_50_rmn_pre)
 
 
-# Calculate transpiration partitioned
-# deltaT_u = T_post_u - T_pre_u (See equations in publication appendix)
-transp_change <- diff_flux_annual_stacked %>% 
+# Calculate transpiration remain
+transp_rmn <- diff_flux_annual_stacked %>% 
   dplyr::filter(flux == "Transp") %>% 
-  dplyr::mutate(transp_80_allocated = `80` - (`100`*(1-0.2)),
-                transp_50_allocated = `50` - (`100`*0.5))
+  dplyr::select(-c("absolute_80", "absolute_50", "relative_80", "relative_50")) %>% 
+  dplyr::mutate(delta_transp_80_rmn = (`80`-0) - (`100`* (1-0.2)),
+                delta_transp_50_rmn = (`50`-0) - (`100`* (1-0.5)))
 
 
-# Calculate streamflow partitioned
-streamflow_change <- diff_flux_annual_stacked %>% 
+# Calculate streamflow remain
+streamflow_w <- diff_flux_annual_stacked %>% 
   dplyr::filter(flux == "Streamflow") %>% 
-  dplyr::mutate(streamflow_80_allocated = `80` - `100`,
-                streamflow_50_allocated = `50` - `100`)
+  dplyr::mutate(delta_streamflow_80_w = `80` - `100`,
+                delta_streamflow_50_w = `50` - `100`)
 
 
-# Calculate soil storage partitioned
-storage_change_soil <- diff_storage_daily$Total_sto %>% 
+# Calculate soil storage remain (part 1 of storage term)
+storage_w_soil <- diff_storage_daily$Total_sto %>% 
   dplyr::filter(WYD %in% c(1, 364)) %>%                  # Compare storage on the first and last data of wateryear (364 used because of some missing data with WYD365)
   dplyr::group_by(watershed) %>% 
   dplyr::mutate(lag_50 = lag(`50`),
                 lag_80 = lag(`80`),
                 lag_100 = lag(`100`),
-                soilstorage_50_allocated = (`50`-lag_50) - (`100`-lag_100),
-                soilstorage_80_allocated = (`80`-lag_80) - (`100`-lag_100)) %>% 
+                soilstorage_50_w = (`50`-lag_50) - (`100`-lag_100),
+                soilstorage_80_w = (`80`-lag_80) - (`100`-lag_100)) %>% 
   dplyr::filter(WYD %in% c(364))
 
 
-# Calculate gw storage partitioned
-storage_change_gw <- diff_storage_daily$GW_sto %>% 
+# Calculate gw storage remain  (part 2 of storage term)
+storage_w_gw <- diff_storage_daily$GW_sto %>% 
   dplyr::filter(WYD %in% c(1, 364)) %>%                  # Compare storage on the first and last data of wateryear (364 used because of some missing data with WYD365)
   dplyr::group_by(watershed) %>% 
   dplyr::mutate(lag_50 = lag(`50`),
                 lag_80 = lag(`80`),
                 lag_100 = lag(`100`),
-                gwstorage_50_allocated = (`50`-lag_50) - (`100`-lag_100),
-                gwstorage_80_allocated = (`80`-lag_80) - (`100`-lag_100)) %>% 
+                gwstorage_50_w = (`50`-lag_50) - (`100`-lag_100),
+                gwstorage_80_w = (`80`-lag_80) - (`100`-lag_100)) %>% 
   dplyr::filter(WYD %in% c(364))
 
 
-# Calculate total storage partitioned (Note: these values match very well with those computed using WB_Residual)
-storage_change <- storage_change_soil %>%
-  dplyr::select(wy, WYD, watershed, soilstorage_50_allocated, soilstorage_80_allocated) %>% 
-  dplyr::full_join(., dplyr::select(storage_change_gw, wy, WYD, watershed,
-                gwstorage_50_allocated, gwstorage_80_allocated),
+# Calculate total storage remain
+storage_w <- storage_w_soil %>%
+  dplyr::select(wy, WYD, watershed, soilstorage_50_w, soilstorage_80_w) %>% 
+  dplyr::full_join(., dplyr::select(storage_w_gw, wy, WYD, watershed,
+                gwstorage_50_w, gwstorage_80_w),
                 by = c("wy", "WYD", "watershed")) %>% 
-  dplyr::mutate(storage_50_allocated = gwstorage_50_allocated + soilstorage_50_allocated,
-                storage_80_allocated = gwstorage_80_allocated + soilstorage_80_allocated)
+  dplyr::mutate(delta_storage_50_w = gwstorage_50_w + soilstorage_50_w,
+                delta_storage_80_w = gwstorage_80_w + soilstorage_80_w)
   
 
 
@@ -190,54 +166,56 @@ storage_change <- storage_change_soil %>%
 # Bring all components of vegetation change water balance together 
 
 
-# Conserved water
-flux_conserved <- dplyr::full_join(dplyr::select(evap_conserved, c(wy, watershed, evap_80_conserved, evap_50_conserved)), 
-                                   dplyr::select(transp_conserved, c(wy, watershed, transp_80_conserved, transp_50_conserved)), 
-                                   by=c("wy", "watershed")) %>% 
-  dplyr::mutate(total_80_conserved = evap_80_conserved + transp_80_conserved,
-                total_50_conserved = evap_50_conserved + transp_50_conserved)
+# Water made available
+flux_rmv <- dplyr::full_join(dplyr::select(evap_rmv, c(wy, watershed, delta_evap_80_rmv, delta_evap_50_rmv)), 
+                             dplyr::select(transp_rmv, c(wy, watershed, delta_transp_80_rmv, delta_transp_50_rmv)), 
+                             by=c("wy", "watershed")) %>% 
+  dplyr::mutate(total_80_rmv = delta_evap_80_rmv + delta_transp_80_rmv,
+                total_50_rmv = delta_evap_50_rmv + delta_transp_50_rmv)
 
-flux_conserved <- flux_conserved %>% 
+flux_rmv <- flux_rmv %>% 
   dplyr::left_join(., dplyr::distinct(dplyr::select(data_annual, wy, watershed, Precip)), by=c("wy", "watershed"))
 
-flux_conserved_long <- flux_conserved %>% 
-  dplyr::select(-c(total_80_conserved, total_50_conserved)) %>% 
+flux_leftside_long <- flux_rmv %>% 
+  dplyr::select(-c(total_80_rmv, total_50_rmv)) %>% 
   tidyr::pivot_longer(names_to = "flux_level", values_to = "value", -c(wy,watershed, Precip)) %>% 
-  tidyr::separate(flux_level, into=c("flux", "scenario", "balance_component"))
+  tidyr::separate(flux_level, into=c("delta", "flux", "scenario", "balance_component")) %>% 
+  dplyr::select(-c(delta)) %>% 
+  mutate(balance_component = if_else(balance_component == "rmv", "leftside", NULL))
 
 
 # ----
 # Allocated water
-flux_allocated <- dplyr::full_join(dplyr::select(evap_change, wy, watershed, evap_80_allocated, evap_50_allocated), 
-                                   dplyr::select(transp_change, wy, watershed, transp_80_allocated, transp_50_allocated), 
+flux_allocated <- dplyr::full_join(dplyr::select(evap_rmn, wy, watershed, delta_evap_80_rmn, delta_evap_50_rmn), 
+                                   dplyr::select(transp_rmn, wy, watershed, delta_transp_80_rmn, delta_transp_50_rmn), 
                                    by=c("wy", "watershed"))
 
 flux_allocated <- dplyr::full_join(flux_allocated, 
-                                   dplyr::select(streamflow_change, wy, watershed, streamflow_80_allocated, streamflow_50_allocated), 
+                                   dplyr::select(streamflow_w, wy, watershed, delta_streamflow_80_w, delta_streamflow_50_w), 
                                    by=c("wy", "watershed"))
 
 flux_allocated <- dplyr::full_join(flux_allocated,
-                                   dplyr::select(storage_change, wy, watershed, storage_80_allocated, storage_50_allocated),
+                                   dplyr::select(storage_w, wy, watershed, delta_storage_80_w, delta_storage_50_w),
                                    by=c("wy", "watershed"))
 
 # Create percentages
 flux_allocated <- flux_allocated %>% 
-  dplyr::mutate(evap_50_percent = evap_50_allocated/(evap_50_allocated + transp_50_allocated +
-                                                           streamflow_50_allocated + storage_50_allocated),
-                transp_50_percent = transp_50_allocated/(evap_50_allocated + transp_50_allocated +
-                                                           streamflow_50_allocated + storage_50_allocated),
-                streamflow_50_percent = streamflow_50_allocated/(evap_50_allocated + transp_50_allocated +
-                                                           streamflow_50_allocated + storage_50_allocated),
-                storage_50_percent = storage_50_allocated/(evap_50_allocated + transp_50_allocated +
-                                                           streamflow_50_allocated + storage_50_allocated),
-                evap_80_percent = evap_80_allocated/(evap_80_allocated + transp_80_allocated +
-                                                         streamflow_80_allocated + storage_80_allocated),
-                transp_80_percent = transp_80_allocated/(evap_80_allocated + transp_80_allocated +
-                                                           streamflow_80_allocated + storage_80_allocated),
-                streamflow_80_percent = streamflow_80_allocated/(evap_80_allocated + transp_80_allocated +
-                                                               streamflow_80_allocated + storage_80_allocated),
-                storage_80_percent = storage_80_allocated/(evap_80_allocated + transp_80_allocated +
-                                                            streamflow_80_allocated + storage_80_allocated))
+  dplyr::mutate(delta_evap_50_percent = delta_evap_50_rmn/(delta_evap_50_rmn + delta_transp_50_rmn +
+                                                           delta_streamflow_50_w + delta_storage_50_w),
+                delta_transp_50_percent = delta_transp_50_rmn/(delta_evap_50_rmn + delta_transp_50_rmn +
+                                                           delta_streamflow_50_w + delta_storage_50_w),
+                delta_streamflow_50_percent = delta_streamflow_50_w/(delta_evap_50_rmn + delta_transp_50_rmn +
+                                                           delta_streamflow_50_w + delta_storage_50_w),
+                delta_storage_50_percent = delta_storage_50_w/(delta_evap_50_rmn + delta_transp_50_rmn +
+                                                           delta_streamflow_50_w + delta_storage_50_w),
+                delta_evap_80_percent = delta_evap_80_rmn/(delta_evap_80_rmn + delta_transp_80_rmn +
+                                                         delta_streamflow_80_w + delta_storage_80_w),
+                delta_transp_80_percent = delta_transp_80_rmn/(delta_evap_80_rmn + delta_transp_80_rmn +
+                                                           delta_streamflow_80_w + delta_storage_80_w),
+                delta_streamflow_80_percent = delta_streamflow_80_w/(delta_evap_80_rmn + delta_transp_80_rmn +
+                                                               delta_streamflow_80_w + delta_storage_80_w),
+                delta_storage_80_percent = delta_storage_80_w/(delta_evap_80_rmn + delta_transp_80_rmn +
+                                                            delta_streamflow_80_w + delta_storage_80_w))
 
 
 # Add precipitation to results
@@ -245,13 +223,17 @@ flux_allocated <- flux_allocated %>%
   dplyr::left_join(., dplyr::distinct(dplyr::select(data_annual, wy, watershed, Precip)), by=c("wy", "watershed"))
 
 # Separate the flux from the scenario
-flux_allocated_long <- tidyr::pivot_longer(flux_allocated, names_to = "flux_level", values_to = "value", -c(wy,watershed, Precip)) %>% 
-  tidyr::separate(flux_level, into=c("flux", "scenario", "balance_component"))
+flux_rightside_long <- tidyr::pivot_longer(flux_allocated, names_to = "flux_level", values_to = "value", -c(wy,watershed, Precip)) %>% 
+  tidyr::separate(flux_level, into=c("delta", "flux", "scenario", "balance_component")) %>% 
+  dplyr::select(-c(delta)) %>% 
+  mutate(balance_component = case_when(balance_component == "rmn" ~ "rightside",
+                                       balance_component == "w" ~ "rightside",
+                                       balance_component == "percent" ~ "percent"))
 
 
 # ----
 # Combine conserved and allocated water
-veg_change_water_balance <- bind_rows(flux_conserved_long, flux_allocated_long)
+veg_change_water_balance <- bind_rows(flux_leftside_long, flux_rightside_long)
 veg_change_water_balance$flux <- factor(veg_change_water_balance$flux, levels = c("storage", "streamflow", "evap", "transp"))
 veg_change_water_balance$scenario <- factor(veg_change_water_balance$scenario, levels = c("80", "50"))
 
@@ -263,8 +245,8 @@ veg_change_water_balance$scenario <- factor(veg_change_water_balance$scenario, l
 # Make vegetation change water balance figure (Fig 4)
 
 scenario_id <- c(
-  "80" = "20% Thinning Scenario",
-  "50" = "50% Thinning Scenario"
+  "80" = "20% Biomass reduction",
+  "50" = "50% Biomass reduction"
 )
 
 shed_id <- c(
@@ -277,26 +259,27 @@ shed_id <- c(
 veg_change_water_balance1 <- veg_change_water_balance %>% 
   dplyr::filter(balance_component!="percent") %>% 
   dplyr::mutate(tmp = paste(flux,balance_component, sep="_")) %>% 
-  dplyr::mutate(flux_comp = case_when(tmp == "evap_conserved" ~ paste("a1",tmp, sep="_"),
-                                      tmp == "transp_conserved" ~ paste("a2",tmp, sep="_"),
-                                      tmp == "storage_allocated" ~ paste("a3",tmp, sep="_"),
-                                      tmp == "streamflow_allocated" ~ paste("a4",tmp, sep="_"),
-                                      tmp == "evap_allocated" ~ paste("a5",tmp, sep="_"),
-                                      tmp == "transp_allocated" ~ paste("a6",tmp, sep="_"))) %>% 
+  dplyr::mutate(flux_comp = case_when(tmp == "evap_leftside" ~ paste("a1",tmp, sep="_"),
+                                      tmp == "transp_leftside" ~ paste("a2",tmp, sep="_"),
+                                      tmp == "storage_rightside" ~ paste("a3",tmp, sep="_"),
+                                      tmp == "streamflow_rightside" ~ paste("a4",tmp, sep="_"),
+                                      tmp == "evap_rightside" ~ paste("a5",tmp, sep="_"),
+                                      tmp == "transp_rightside" ~ paste("a6",tmp, sep="_"))) %>% 
   dplyr::group_by(wy, flux, scenario, balance_component, flux_comp) %>% 
-  dplyr::summarise(value = mean(value))
+  dplyr::summarise(value = mean(value)) %>% 
+  mutate(value = if_else(balance_component == "leftside", -value, value))
 veg_change_water_balance1$wy <- as.numeric(veg_change_water_balance1$wy)
 veg_change_water_balance1$flux_comp <- factor(veg_change_water_balance1$flux_comp,
-                                              levels = c("a1_evap_conserved", "a2_transp_conserved",
-                                                         "a3_storage_allocated", "a4_streamflow_allocated",
-                                                         "a5_evap_allocated", "a6_transp_allocated"))    # The a1, a2, etc is because I couldn't get order correct below so renamed alphbetically.
+                                              levels = c("a1_evap_leftside", "a2_transp_leftside",
+                                                         "a3_storage_rightside", "a4_streamflow_rightside",
+                                                         "a5_evap_rightside", "a6_transp_rightside"))    # The a1, a2, etc is because I couldn't get order correct below so renamed alphbetically.
 
 
 x <- ggplot() +
-  geom_col(data=dplyr::filter(veg_change_water_balance1, balance_component=="conserved"),
-           mapping=aes(x=wy-0.17,y=value, fill=flux_comp), width = .3, position = "stack") +
-  geom_col(data=dplyr::filter(veg_change_water_balance1, balance_component=="allocated"),
-           mapping=aes(x=wy+0.17,y=value, fill=flux_comp), width = .3, position = "stack") +
+  geom_col(data=dplyr::filter(veg_change_water_balance1, balance_component=="leftside"),
+           mapping=aes(x=wy-0.17,y=value, fill=str_wrap(flux_comp)), width = .3, position = "stack") +
+  geom_col(data=dplyr::filter(veg_change_water_balance1, balance_component=="rightside"),
+           mapping=aes(x=wy+0.17,y=value, fill=str_wrap(flux_comp)), width = .3, position = "stack") +
   facet_grid(scenario~., labeller = labeller(scenario = scenario_id)) +
   scale_fill_manual(name = "Flux", 
                     # https://personal.sron.nl/~pault/#sec:qualitative 
@@ -311,22 +294,40 @@ x <- ggplot() +
                     # Bright: Purple, red, cyan, blue, green, yellow                    
                     values = colors_bright_6,
                     
-                    labels = c(expression('Affected Evaporation (-'*Delta*E[a]*')'),
-                               expression('Affected Transpiration (-'*Delta*T[a]*')'),
-                               expression('Change in Storage ('*Delta*'(d'*S[w]*'))'), 
-                               expression('Streamflow ('*Delta*Q[w]*')'),
-                               expression('Unaffected Evaporation ('*Delta*E[u]*')'), 
-                               expression('Unaffected Transpiration ('*Delta*T[u]*')'))) +
+                    # See https://stackoverflow.com/questions/28810453/ for atop reasoning.
+                    labels = c(expression(atop(x="",
+                                               y = atop("Evaporation: Removed",
+                                                        'vegetation (-'*Delta*E[rmv]*')     '))),
+                               expression(atop(x="",
+                                               y = atop("Transpiration: Removed",
+                                                        'vegetation (-'*Delta*T[rmv]*')       '))),
+                               expression(atop(x="",
+                                               y = atop("Change in Storage",
+                                               '('*Delta*'(d'*S[w]*'))               '))), 
+                               expression(atop(x="",
+                                               y = atop("Streamflow",
+                                               '('*Delta*Q[w]*')        '))),
+                               expression(atop(x="",
+                                               y = atop("Evaporation: Remaining",
+                                                        'vegetation ('*Delta*E[rmn]*')        '))), 
+                               expression(atop(x="",
+                                               y = atop("Transpiration: Remaining",
+                                                        'vegetation ('*Delta*T[rmn]*')         '))))) +
   scale_x_continuous(breaks = seq(2004,2014), labels = seq(2004,2014)) +
-  labs(x="Water year", y="Change in post-treatment annual flux, mm") +
+  labs(x="Water year", y="Change in post-biomass-reduction annual flux, mm") +
   theme_bw(base_size = 11) +
   theme(legend.text.align = 0,
-        legend.position = "bottom") +
+        legend.position = "bottom",
+        #legend.key.height=unit(.7, "cm"),
+        legend.text=element_text(size=11,
+                                 margin = margin(t = -2, r = 0, b = 0, l = 0,
+                                                 unit = "mm")),
+        legend.box.margin=margin(-10,-10,-5,-10)) +
   NULL
 #plot(x)
 
 ggsave("output/manuscript_plots/plot_veg_change_water_balance.jpg", plot=x, width = 6.5, height = 5)
-
+ggsave("output/manuscript_plots/plot_veg_change_water_balance.pdf", plot=x, width = 6.5, height = 5)
 
 
 
@@ -350,34 +351,81 @@ shed_id <- c(
 
 
 # By amount for 50% scenario (watersheds combined)
-veg_change_water_balance1 <- veg_change_water_balance
+veg_change_water_balance1 <- veg_change_water_balance %>% 
+  dplyr::group_by(wy, flux, scenario, balance_component) %>% 
+  dplyr::summarise(value = mean(value),
+                   Precip = mean(Precip)) %>% 
+  dplyr::filter(balance_component=="rightside", scenario=="50") %>% 
+  ungroup()
 veg_change_water_balance1$flux <- factor(veg_change_water_balance1$flux,
                                          labels = c(
                                            "storage" = expression('Change in Storage (d'*S[w]*')'),
                                            "streamflow" = expression('Streamflow ('*Q[w]*')'),
-                                           "evap" = expression('Evaporation ('*E[u]*')'),
-                                           "transp" = expression('Transpiration ('*T[u]*')')
+                                           "evap" = expression('Evaporation ('*E[rmn]*')'),
+                                           "transp" = expression('Transpiration ('*T[rmn]*')')
                                          ))
 
+
+# Generate regression values
+regr_results <- veg_change_water_balance1 %>% 
+  group_by(flux, scenario,) %>% 
+  nest() %>% 
+#  mutate(regr = map(data, ~ nls(formula = value ~ Precip^2,  data = ., start = c(1))),
+  mutate(regr = map(data, ~ lm(formula = value ~ Precip,  data = .)),
+         results_terms = map(regr, tidy),
+         results_fit = map(regr, glance))
+
+regr_terms <- regr_results %>% 
+  unnest(results_terms)
+regr_fit <- regr_results %>% 
+  unnest(results_fit)
+print(regr_terms$estimate)
+print(regr_fit$p.value)
+
+dat_text <- data.frame(
+  # label2 = c(expression('y = -0.0040x + 15.6\n'~R^2~' = 0.06, p = 0.48'),
+  #           expression('y = 0.11x - 58.4\nR2 = 0.85, p < 0.0001'),
+  #           expression('y = -0.0082x - 4.8\nR2 = 0.70, p = 0.001'),
+  #           expression('y = -0.047x + 240.8\nR2 = 0.49, p = 0.02')),
+  label = c("y = -0.0040x + 15.6\nR2 = 0.06, p = 0.48",
+            "y = 0.11x - 58.4\nR2 = 0.85, p < 0.0001",
+            "y = -0.0082x - 4.8\nR2 = 0.70, p = 0.001",
+            "y = -0.047x + 240.8\nR2 = 0.49, p = 0.02"),
+  x = c(650,650,650,650),
+  y = c(210,210,210,-16),
+  flux = c("storage",
+           "streamflow" ,
+           "evap",
+           "transp")
+)
+dat_text$flux <- factor(dat_text$flux,
+                        levels = c("storage", "streamflow", "evap", "transp"),
+                        labels = c(
+                          "storage" = expression('Change in Storage (d'*S[w]*')'),
+                          "streamflow" = expression('Streamflow ('*Q[w]*')'),
+                          "evap" = expression('Evaporation ('*E[rmn]*')'),
+                          "transp" = expression('Transpiration ('*T[rmn]*')')
+                        ))
+
+# Plot figure
 x <- veg_change_water_balance1 %>% 
-  dplyr::group_by(wy, flux, scenario, balance_component) %>% 
-  dplyr::summarise(value = mean(value),
-                   Precip = mean(Precip)) %>% 
-  dplyr::filter(balance_component=="allocated", scenario=="50") %>% 
   ggplot(data=.) +
   geom_point(aes(x=Precip, y=value)) +
-  # geom_smooth(aes(x=Precip, y=value), method='lm') +
-  geom_smooth(aes(x=Precip, y=value), method='glm', formula = y ~ I(x^2)) +
-  # geom_smooth(aes(x=Precip, y=value), span=3) +
+  stat_smooth(aes(x=Precip, y=value), method="lm", formula = y~x) +
+  #geom_smooth(aes(x=Precip, y=value), method='glm', formula = y ~ I(x^2)) +
+  geom_text(data = dat_text,
+            mapping = aes(x = x, y = y, label = label),
+            hjust = 0, vjust = 0, size = 2) +
   facet_wrap(flux~.,
              labeller = labeller(flux = label_parsed)) +
   labs(x="Annual precipitation, mm",
-       y="Change in post-treatment annual flux, mm") +
+       y="Change in post-biomass-reduction annual flux, mm") +
   theme_bw(base_size = 11) +
   NULL
 plot(x)
 
 ggsave("output/manuscript_plots/plot_precip_vs_flux_change_50.jpg", plot=x, width = 5, height = 4)
+ggsave("output/manuscript_plots/plot_precip_vs_flux_change_50.pdf", plot=x, width = 5, height = 4)
 
 
 
@@ -393,8 +441,8 @@ veg_change_water_balance1$flux <- factor(veg_change_water_balance1$flux,
                                          labels = c(
                                            "storage" = expression('Delta Storage (d'*S[w]*')'),
                                            "streamflow" = expression('Streamflow ('*Q[w]*')'),
-                                           "evap" = expression('Evaporation ('*E[u]*')'),
-                                           "transp" = expression('Transpiration ('*T[u]*')')
+                                           "evap" = expression('Evaporation ('*E[rmn]*')'),
+                                           "transp" = expression('Transpiration ('*T[rmn]*')')
                                          ))
 
 
@@ -402,7 +450,7 @@ veg_change_water_balance1$flux <- factor(veg_change_water_balance1$flux,
 happy <- veg_change_water_balance %>% 
   dplyr::group_by(wy, flux, scenario, balance_component) %>% 
   dplyr::summarise(value = mean(value), Precip = mean(Precip)) %>% 
-  dplyr::filter(balance_component=="allocated", flux %in% c("streamflow", "transp")) %>% 
+  dplyr::filter(balance_component=="rightside", flux %in% c("streamflow", "transp")) %>% 
   tidyr::pivot_wider(names_from = scenario, values_from = value) %>% 
   dplyr::mutate(`50_normalized` = `50`*(1/50),      # Flux yield per 1% treated area in watershed
                 `80_normalized` = `80`*(1/20),      # Flux yield per 1% treated area in watershed
@@ -411,7 +459,7 @@ happy <- veg_change_water_balance %>%
   tidyr::pivot_longer(cols = c(`50_normalized`, `80_normalized`), names_to = "normalized_names", values_to = "normalized_values")
 happy$normalized_names <- factor(happy$normalized_names, levels = c("80_normalized", "50_normalized"))
 happy$flux <- factor(happy$flux, levels = c("transp", "streamflow"),
-                     labels = c("transp" = expression('Transpiration ('*T[u]*')'),"streamflow" = expression('Streamflow ('*Q[w]*')')))
+                     labels = c("transp" = expression('Transpiration ('*T[rmn]*')'),"streamflow" = expression('Streamflow ('*Q[w]*')')))
 
 happy_mean <- happy %>% 
   dplyr::group_by(flux, normalized_names) %>% 
@@ -424,19 +472,31 @@ x <- ggplot() +
   facet_grid(flux~.,
              labeller = labeller(flux = label_parsed)) +
   scale_fill_manual(name = "Scenario", values = colors_vibrant_2,
-                    labels = c("20% Thinning", "50% Thinning")) +
+                    labels = c("20% Biomass reduction", "50% Biomass reduction")) +
   scale_color_manual(name = "Scenario", values = colors_vibrant_2,
-                     labels = c("20% Thinning", "50% Thinning")) +
+                     labels = c("20% Biomass reduction", "50% Biomass reduction")) +
   labs(x="Water year",
-       y="Annual flux change per 1% thinned, mm") +
+       y="Annual flux change per 1% biomass removed, mm") +
   theme_bw(base_size = 11) +
-  theme(legend.position = "bottom") +
+  theme(legend.position = "bottom",
+        legend.box.margin=margin(-10,-10,-5,-10)) +
   NULL
 #plot(x)
 
 ggsave("output/manuscript_plots/plot_bang_for_your_buck_.jpg", plot=x, width = 6.5, height = 5)
+ggsave("output/manuscript_plots/plot_bang_for_your_buck_.pdf", plot=x, width = 6.5, height = 5)
 
 
+# ---------
+# Test statistical difference between normalized changes
+# Use 1-sample test. See if significantly different than zero.
+
+happy %>% 
+  group_by(flux, normalized_names) %>% 
+  summarize(stat = t.test(normalized_values)$statistic,
+            p = t.test(normalized_values)$p.value)
+
+t.test(dplyr::filter(happy, flux == "\"Streamflow (\" * Q[w] * \")\"", normalized_names == "50_normalized")$normalized_values)
 
 
 # ---------------------------------------------------------------------
@@ -444,7 +504,7 @@ ggsave("output/manuscript_plots/plot_bang_for_your_buck_.jpg", plot=x, width = 6
 # ---------------------------------------------------------------------
 # Save outputs
 
-write_csv(veg_change_water_balance, path="output/veg_change_water_balance.csv")
+write_csv(veg_change_water_balance, file="output/veg_change_water_balance.csv")
 
 
 
